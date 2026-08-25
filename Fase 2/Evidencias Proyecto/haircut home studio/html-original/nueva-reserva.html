@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Nueva Reserva</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Reserva Inteligente (R.6, R.7, R.8, R.9, R.10)
+     Si llega con ?repetir=1 el formulario debería autocompletarse
+     con la última reserva del cliente (lógica a implementar en PHP).
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio</h1>
+<div class="session-info">Cliente (demo) &middot; <a href="index.html">Cerrar sesión</a></div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="dashboard.html">Dashboard</a>
+<a href="nueva-reserva.html" class="current">Nueva Reserva</a>
+<a href="mis-reservas.html">Mis Reservas</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Nueva Reserva</h2>
+<p class="hint">Nota de mockup: si el cliente llegó desde "Repetir última reserva", este formulario
+se muestra pre-cargado con la categoría, tipo y foto de su reserva anterior.</p>
+
+<form action="#" method="post" enctype="multipart/form-data">
+
+<fieldset>
+<legend>1. Categoría</legend>
+<label><input type="radio" name="categoria" value="corte" checked> Corte</label><br><br>
+<label><input type="radio" name="categoria" value="color"> Color</label>
+</fieldset>
+
+<fieldset>
+<legend>2. Tipo específico</legend>
+<select name="tipo" id="tipo">
+<option value="clasico">Corte Clásico</option>
+<option value="barba">Corte + Barba</option>
+<option value="infantil">Corte Infantil</option>
+<option value="color-completo">Color Completo</option>
+<option value="mechas">Mechas / Balayage</option>
+<option value="retoque">Retoque de Raíz</option>
+</select>
+</fieldset>
+
+<fieldset>
+<legend>3. Foto de referencia (opcional)</legend>
+<div class="field">
+<label for="foto">Sube una foto del resultado que quieres</label>
+<input type="file" id="foto" name="foto" accept="image/*">
+</div>
+<div class="actions">
+<a href="#" class="btn btn-secondary">Generar vista previa con IA</a>
+</div>
+<p class="hint">[Aquí se mostraría la imagen simulada generada por IA con el resultado esperado]</p>
+</fieldset>
+
+<fieldset>
+<legend>4. Fecha y hora</legend>
+<div class="field">
+<label for="fecha">Fecha</label>
+<input type="date" id="fecha" name="fecha" required>
+</div>
+<div class="field">
+<label for="hora">Hora disponible</label>
+<select name="hora" id="hora">
+<option>09:00</option>
+<option>10:00</option>
+<option>11:30</option>
+<option>15:00</option>
+<option>16:30</option>
+</select>
+</div>
+</fieldset>
+
+<div class="actions">
+<a href="mis-reservas.html" class="btn btn-primary">Confirmar Solicitud de Reserva</a>
+</div>
+
+<p class="hint">La hora quedará reservada temporalmente. Se libera solo si el administrador rechaza la solicitud.
+Recibirás un correo cuando se confirme.</p>
+
+</form>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Formulario de reserva</p>
+</div>
+</footer>
+
+</body>
+</html>

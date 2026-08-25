@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Mi Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Dashboard de Reservas del cliente (R.5)
+     Requiere sesión iniciada.
+     Futuro PHP: verificar $_SESSION['user_id'], si no existe -> redirigir a login.php
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio</h1>
+<div class="session-info">Cliente (demo) &middot; <a href="index.html">Cerrar sesión</a></div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="dashboard.html" class="current">Dashboard</a>
+<a href="nueva-reserva.html">Nueva Reserva</a>
+<a href="mis-reservas.html">Mis Reservas</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Calendario de Disponibilidad</h2>
+<p class="hint">Solo se muestran los meses habilitados por el administrador.</p>
+
+<table class="calendar">
+<tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
+<tr>
+<td>1<br><span class="status status-disponible">Disponible</span></td>
+<td>2<br><span class="status status-disponible">Disponible</span></td>
+<td class="off">3<br><span class="status status-off">Off</span></td>
+<td>4<br><span class="status status-disponible">Disponible</span></td>
+<td>5<br><span class="status status-disponible">Disponible</span></td>
+<td>6<br><span class="status status-disponible">Disponible</span></td>
+<td class="off">7<br><span class="status status-off">Off</span></td>
+</tr>
+<tr>
+<td>8<br><span class="status status-disponible">Disponible</span></td>
+<td>9<br><span class="status status-disponible">Disponible</span></td>
+<td>10<br><span class="status status-disponible">Disponible</span></td>
+<td class="off">11<br><span class="status status-off">Off</span></td>
+<td>12<br><span class="status status-disponible">Disponible</span></td>
+<td>13<br><span class="status status-disponible">Disponible</span></td>
+<td class="off">14<br><span class="status status-off">Off</span></td>
+</tr>
+</table>
+</section>
+
+<section class="card">
+<h2>Acciones rápidas</h2>
+<div class="actions">
+<a href="nueva-reserva.html" class="btn btn-primary">+ Nueva Reserva</a>
+<a href="nueva-reserva.html?repetir=1" class="btn btn-secondary">Repetir última reserva</a>
+<a href="mis-reservas.html" class="btn btn-secondary">Ver / cancelar mis reservas</a>
+</div>
+<p class="hint">"Repetir" autocompleta el formulario con los datos de tu última reserva.</p>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Panel del cliente</p>
+</div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Iniciar sesión</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Autenticación (R.1)
+     Se llega aquí desde el catálogo público al intentar reservar.
+     Futuro PHP: login.php valida credenciales y hace session_start()
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio</h1>
+<div class="view-switch">
+<a href="index.html" class="current">Cliente</a> ·
+<a href="admin-dashboard.html">Administrador</a>
+</div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="index.html">&laquo; Volver al catálogo</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Iniciar sesión</h2>
+<form action="#" method="post">
+<div class="field">
+<label for="login-email">Correo electrónico</label>
+<input type="email" id="login-email" name="email" required>
+</div>
+<div class="field">
+<label for="login-pass">Contraseña</label>
+<input type="password" id="login-pass" name="password" required>
+</div>
+<div class="actions">
+<a href="dashboard.html" class="btn btn-primary">Entrar</a>
+</div>
+</form>
+</section>
+
+<section class="card">
+<h2>¿Primera vez? Regístrate</h2>
+<form action="#" method="post">
+<div class="field">
+<label for="reg-nombre">Nombre completo</label>
+<input type="text" id="reg-nombre" name="nombre" required>
+</div>
+<div class="field">
+<label for="reg-email">Correo electrónico</label>
+<input type="email" id="reg-email" name="email" required>
+</div>
+<div class="field">
+<label for="reg-pass">Contraseña</label>
+<input type="password" id="reg-pass" name="password" required>
+</div>
+<div class="field">
+<label for="reg-pass2">Confirmar contraseña</label>
+<input type="password" id="reg-pass2" name="password2" required>
+</div>
+<div class="actions">
+<a href="dashboard.html" class="btn btn-primary">Crear cuenta y continuar</a>
+</div>
+</form>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Acceso de clientes</p>
+</div>
+</footer>
+
+</body>
+</html>

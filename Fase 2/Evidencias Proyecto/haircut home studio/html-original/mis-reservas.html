@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Mis Reservas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Gestión de Horas / Historial (R.9, R.10)
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio</h1>
+<div class="session-info">Cliente (demo) &middot; <a href="index.html">Cerrar sesión</a></div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="dashboard.html">Dashboard</a>
+<a href="nueva-reserva.html">Nueva Reserva</a>
+<a href="mis-reservas.html" class="current">Mis Reservas</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Mis Reservas</h2>
+
+<table>
+<tr>
+<th>Fecha / Hora</th>
+<th>Servicio</th>
+<th>Estado</th>
+<th>Acción</th>
+</tr>
+<tr>
+<td>20/08/2026<br>15:00</td>
+<td>Corte + Barba</td>
+<td><span class="status status-confirmada">Confirmada</span></td>
+<td><a href="#" class="btn btn-secondary">Cancelar</a></td>
+</tr>
+<tr>
+<td>28/08/2026<br>11:30</td>
+<td>Retoque de Raíz</td>
+<td><span class="status status-pendiente">Pendiente</span></td>
+<td><a href="#" class="btn btn-secondary">Cancelar</a></td>
+</tr>
+<tr>
+<td>05/07/2026<br>10:00</td>
+<td>Corte Clásico</td>
+<td><span class="status status-realizada">Realizada</span></td>
+<td><span class="hint">(sin acciones)</span></td>
+</tr>
+</table>
+
+<p class="hint">Solo se pueden cancelar reservas en estado Confirmada o Pendiente.</p>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Historial del cliente</p>
+</div>
+</footer>
+
+</body>
+</html>

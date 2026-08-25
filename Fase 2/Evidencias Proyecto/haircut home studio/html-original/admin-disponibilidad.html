@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Disponibilidad</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Gestión de Disponibilidad (R.11, R.12, R.15)
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio <small>Admin</small></h1>
+<div class="view-switch">
+<a href="index.html">Cliente</a> ·
+<a href="admin-dashboard.html" class="current">Administrador</a>
+</div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="admin-dashboard.html">Panel</a>
+<a href="admin-disponibilidad.html" class="current">Disponibilidad</a>
+<a href="admin-solicitudes.html">Solicitudes</a>
+<a href="admin-reportes.html">Reportes</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Gestión de Disponibilidad</h2>
+
+<form action="#" method="post">
+
+<fieldset>
+<legend>Días marcados como "off"</legend>
+<table class="calendar">
+<tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
+<tr>
+<td>1<br><input type="checkbox" name="off[]" value="1"></td>
+<td>2<br><input type="checkbox" name="off[]" value="2"></td>
+<td class="off">3<br><input type="checkbox" name="off[]" value="3" checked></td>
+<td>4<br><input type="checkbox" name="off[]" value="4"></td>
+<td>5<br><input type="checkbox" name="off[]" value="5"></td>
+<td>6<br><input type="checkbox" name="off[]" value="6"></td>
+<td class="off">7<br><input type="checkbox" name="off[]" value="7" checked></td>
+</tr>
+</table>
+<p class="hint">Marca los días completos como no disponibles.</p>
+</fieldset>
+
+<fieldset>
+<legend>Horario de atención</legend>
+<div class="field">
+<label for="h-ini">Hora inicio</label>
+<input type="time" id="h-ini" name="hora_inicio" value="09:00">
+</div>
+<div class="field">
+<label for="h-fin">Hora fin</label>
+<input type="time" id="h-fin" name="hora_fin" value="18:00">
+</div>
+<p><strong>Días de atención</strong></p>
+<label><input type="checkbox" checked> Lunes</label>
+<label><input type="checkbox" checked> Martes</label>
+<label><input type="checkbox" checked> Miércoles</label>
+<label><input type="checkbox" checked> Jueves</label>
+<label><input type="checkbox" checked> Viernes</label>
+<label><input type="checkbox" checked> Sábado</label>
+<label><input type="checkbox"> Domingo</label>
+</fieldset>
+
+<fieldset>
+<legend>Meses visibles para clientes</legend>
+<label><input type="checkbox" checked> Agosto 2026</label>
+<label><input type="checkbox" checked> Septiembre 2026</label>
+<label><input type="checkbox"> Octubre 2026</label>
+<label><input type="checkbox"> Noviembre 2026</label>
+<p class="hint">Solo los meses marcados aquí aparecerán en el calendario del cliente.</p>
+</fieldset>
+
+<div class="actions">
+<a href="admin-dashboard.html" class="btn btn-primary">Guardar cambios</a>
+</div>
+
+</form>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Configuración de disponibilidad</p>
+</div>
+</footer>
+
+</body>
+</html>

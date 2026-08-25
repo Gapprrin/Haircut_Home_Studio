@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Solicitudes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Confirmación / Rechazo de solicitudes (R.9)
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio <small>Admin</small></h1>
+<div class="view-switch">
+<a href="index.html">Cliente</a> ·
+<a href="admin-dashboard.html" class="current">Administrador</a>
+</div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="admin-dashboard.html">Panel</a>
+<a href="admin-disponibilidad.html">Disponibilidad</a>
+<a href="admin-solicitudes.html" class="current">Solicitudes</a>
+<a href="admin-reportes.html">Reportes</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Solicitudes Pendientes</h2>
+
+<table>
+<tr>
+<th>Cliente</th>
+<th>Servicio</th>
+<th>Fecha / Hora</th>
+<th>Foto</th>
+<th>Acción</th>
+</tr>
+<tr>
+<td>Camila R.</td>
+<td>Mechas / Balayage</td>
+<td>22/08 &middot; 10:00</td>
+<td><a href="#">Ver foto</a></td>
+<td>
+<div class="actions">
+<a href="#" class="btn btn-primary">Confirmar</a>
+<a href="#" class="btn btn-secondary">Rechazar</a>
+</div>
+</td>
+</tr>
+<tr>
+<td>Diego P.</td>
+<td>Corte + Barba</td>
+<td>23/08 &middot; 16:30</td>
+<td><span class="hint">(sin foto)</span></td>
+<td>
+<div class="actions">
+<a href="#" class="btn btn-primary">Confirmar</a>
+<a href="#" class="btn btn-secondary">Rechazar</a>
+</div>
+</td>
+</tr>
+<tr>
+<td>Fernanda L.</td>
+<td>Color Completo</td>
+<td>25/08 &middot; 11:00</td>
+<td><a href="#">Ver foto</a></td>
+<td>
+<div class="actions">
+<a href="#" class="btn btn-primary">Confirmar</a>
+<a href="#" class="btn btn-secondary">Rechazar</a>
+</div>
+</td>
+</tr>
+</table>
+
+<p class="hint">Al confirmar, la hora queda reservada de forma definitiva y se envía correo automático al cliente.
+Al rechazar, el cupo se libera de inmediato y también se notifica al cliente.</p>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Bandeja de solicitudes</p>
+</div>
+</footer>
+
+</body>
+</html>

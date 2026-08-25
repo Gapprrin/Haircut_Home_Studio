@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haircut Studio - Inicio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     MOCKUP: Inicio / Catálogo Público (R.3, R.4)
+     No requiere login. El login solo se pide al presionar "Reservar".
+     Futuro PHP: este archivo se convertiría en index.php e incluiría
+     header.php / footer.php con <?php include ... ?>
+============================================================= -->
+
+<header class="site">
+<div class="container">
+<h1>Haircut<span class="accent-dot">.</span>Studio</h1>
+<div class="view-switch">
+<a href="index.html" class="current">Cliente</a> ·
+<a href="admin-dashboard.html">Administrador</a>
+</div>
+</div>
+</header>
+
+<nav class="main-nav">
+<div class="container">
+<a href="index.html" class="current">Inicio</a>
+<a href="login.html">Iniciar sesión / Registrarme</a>
+</div>
+</nav>
+
+<main>
+<div class="container">
+
+<section class="card">
+<h2>Bienvenido/a</h2>
+<p class="lead">Conoce nuestros servicios. Para agendar una hora necesitas iniciar sesión o registrarte.</p>
+</section>
+
+<section>
+<h2>Catálogo de Servicios</h2>
+
+<article class="card">
+<h3>Corte</h3>
+<table>
+<tr><th>Tipo</th><th>Descripción</th><th>Duración</th></tr>
+<tr><td>Corte Clásico</td><td>Corte tradicional a tijera y máquina</td><td>30 min</td></tr>
+<tr><td>Corte + Barba</td><td>Corte más perfilado de barba</td><td>45 min</td></tr>
+<tr><td>Corte Infantil</td><td>Corte para niños</td><td>25 min</td></tr>
+</table>
+</article>
+
+<article class="card">
+<h3>Color</h3>
+<table>
+<tr><th>Tipo</th><th>Descripción</th><th>Duración</th></tr>
+<tr><td>Color Completo</td><td>Tinte uniforme de raíz a puntas</td><td>90 min</td></tr>
+<tr><td>Mechas / Balayage</td><td>Iluminaciones parciales</td><td>120 min</td></tr>
+<tr><td>Retoque de Raíz</td><td>Retoque de color en raíz</td><td>60 min</td></tr>
+</table>
+</article>
+
+</section>
+
+<section class="card">
+<div class="actions">
+<a href="login.html" class="btn btn-primary">Reservar ahora</a>
+</div>
+<p class="hint">Te pediremos iniciar sesión antes de agendar.</p>
+</section>
+
+</div>
+</main>
+
+<footer class="site">
+<div class="container">
+<p>Haircut Studio &mdash; Página de inicio pública</p>
+</div>
+</footer>
+
+</body>
+</html>
