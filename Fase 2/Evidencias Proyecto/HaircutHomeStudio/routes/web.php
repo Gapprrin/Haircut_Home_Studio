@@ -1,0 +1,70 @@
+<?php
+
+use App\Http\Controllers\Admin\AvailabilityController;
+use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HoursController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\SolicitudController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReservationController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/productos', [ProductController::class, 'index'])->name('productos.index');
+
+Route::middleware('guest')->group(function (): void {
+    Route::get('/login', [AuthController::class, 'show'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1')->name('login.store');
+    Route::post('/registro', [AuthController::class, 'register'])->middleware('throttle:6,1')->name('register.store');
+});
+
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::middleware(['auth', 'role:cliente'])->group(function (): void {
+    Route::get('/reservar', [ReservationController::class, 'create'])->name('reservas.create');
+    Route::post('/reservar', [ReservationController::class, 'store'])->name('reservas.store');
+    Route::get('/mis-reservas', [ReservationController::class, 'index'])->name('reservas.index');
+    Route::patch('/mis-reservas/{reserva}/cancelar', [ReservationController::class, 'cancel'])->name('reservas.cancel');
+});
+
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/servicios', [ServiceController::class, 'index'])->name('servicios.index');
+    Route::post('/categorias', [ServiceController::class, 'storeCategory'])->name('categorias.store');
+    Route::delete('/categorias/{categoria}', [ServiceController::class, 'destroyCategory'])->name('categorias.destroy');
+    Route::post('/servicios', [ServiceController::class, 'store'])->name('servicios.store');
+    Route::put('/servicios/{servicio}', [ServiceController::class, 'update'])->name('servicios.update');
+    Route::delete('/servicios/{servicio}', [ServiceController::class, 'destroy'])->name('servicios.destroy');
+
+    Route::get('/catalogo', [CatalogController::class, 'index'])->name('catalogo.index');
+    Route::post('/catalogo', [CatalogController::class, 'store'])->name('catalogo.store');
+    Route::put('/catalogo/{producto}', [CatalogController::class, 'update'])->name('catalogo.update');
+    Route::delete('/catalogo/{producto}', [CatalogController::class, 'destroy'])->name('catalogo.destroy');
+});
+
+Route::middleware(['auth', 'role:peluquero'])->prefix('admin')->name('peluquero.')->group(function (): void {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/disponibilidad', [AvailabilityController::class, 'edit'])->name('disponibilidad.edit');
+    Route::put('/disponibilidad', [AvailabilityController::class, 'update'])->name('disponibilidad.update');
+    Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes.index');
+    Route::patch('/solicitudes/{reserva}', [SolicitudController::class, 'update'])->name('solicitudes.update');
+    Route::get('/horas', [HoursController::class, 'index'])->name('horas.index');
+    Route::patch('/horas', [HoursController::class, 'update'])->name('horas.update');
+    Route::get('/reportes', [ReportController::class, 'export'])->name('reportes.export');
+});
+
+Route::redirect('/index.php', '/');
+Route::redirect('/usuario/productos.php', '/productos');
+Route::redirect('/usuario/nueva-reserva.php', '/reservar');
+Route::redirect('/usuario/mis-reservas.php', '/mis-reservas');
+Route::redirect('/auth/login.php', '/login');
+Route::redirect('/admin/servicios.php', '/admin/servicios');
+Route::redirect('/admin/catalogo.php', '/admin/catalogo');
+Route::redirect('/admin/dashboard.php', '/admin/dashboard');
+Route::redirect('/admin/disponibilidad.php', '/admin/disponibilidad');
+Route::redirect('/admin/solicitudes.php', '/admin/solicitudes');
+Route::redirect('/admin/horas.php', '/admin/horas');
+Route::redirect('/admin/reporte-export.php', '/admin/reportes');
