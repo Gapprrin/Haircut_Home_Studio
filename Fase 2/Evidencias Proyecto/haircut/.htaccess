@@ -1,0 +1,20 @@
+DirectoryIndex index.php index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^login\.php$ auth/login.php [L,QSA]
+RewriteRule ^logout\.php$ auth/logout.php [L,QSA]
+RewriteRule ^nueva-reserva\.php$ usuario/nueva-reserva.php [L,QSA]
+RewriteRule ^mis-reservas\.php$ usuario/mis-reservas.php [L,QSA]
+RewriteRule ^productos\.php$ usuario/productos.php [L,QSA]
+RewriteRule ^cancelar-reserva\.php$ usuario/cancelar-reserva.php [L,QSA]
+RewriteRule ^dashboard\.php$ usuario/nueva-reserva.php [L,QSA]
+RewriteRule ^admin-dashboard\.php$ admin/dashboard.php [L,QSA]
+RewriteRule ^admin-disponibilidad\.php$ admin/disponibilidad.php [L,QSA]
+RewriteRule ^admin-solicitudes\.php$ admin/solicitudes.php [L,QSA]
+RewriteRule ^admin-horas\.php$ admin/horas.php [L,QSA]
+RewriteRule ^admin-servicios\.php$ admin/servicios.php [L,QSA]
+RewriteRule ^admin-catalogo\.php$ admin/catalogo.php [L,QSA]
+RewriteRule ^admin-reporte-export\.php$ admin/reporte-export.php [L,QSA]
+RewriteRule ^instalar\.php$ html/instalar.php [L,QSA]
+</IfModule>
