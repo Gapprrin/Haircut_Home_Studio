@@ -1,0 +1,287 @@
+HAIRCUT HOME STUDIO - INSTALACION DEL PROYECTO EN WINDOWS
+==========================================================
+
+Esta guia permite instalar y ejecutar el proyecto Laravel desde cero en otro computador.
+
+UBICACION DEL PROYECTO
+----------------------
+Carpeta de la aplicacion:
+Fase 2\Evidencias Proyecto\HaircutHomeStudio
+
+Abrir PowerShell dentro de esa carpeta antes de ejecutar los comandos indicados.
+
+
+1. PROGRAMAS QUE SE DEBEN INSTALAR
+----------------------------------
+
+1) XAMPP (incluye PHP y MariaDB/MySQL)
+   Descargar: https://www.apachefriends.org/es/index.html
+   Requisito: PHP 8.2 o superior.
+
+   En el panel de control de XAMPP iniciar:
+   - Apache (opcional si se usa "php artisan serve", recomendado para phpMyAdmin).
+   - MySQL (obligatorio para la base de datos).
+
+   Verificar en PowerShell:
+   & 'C:\xampp\php\php.exe' -v
+
+2) Composer
+   Descargar: https://getcomposer.org/download/
+   Durante la instalacion, seleccionar el ejecutable PHP de XAMPP si el instalador lo pregunta:
+   C:\xampp\php\php.exe
+
+   Cerrar y abrir PowerShell, luego verificar:
+   composer --version
+
+3) Node.js LTS (incluye npm)
+   Descargar: https://nodejs.org/
+   Instalar la version LTS. Verificar despues de instalar:
+   node --version
+   npm --version
+
+4) Git (recomendado para clonar y actualizar el repositorio)
+   Descargar: https://git-scm.com/download/win
+   Verificar:
+   git --version
+
+NO instalar requirements.txt ni pip: esos son mecanismos de proyectos Python y este proyecto usa PHP/Laravel.
+
+
+2. EXTENSIONES PHP NECESARIAS
+-----------------------------
+
+XAMPP normalmente ya las trae activadas. En C:\xampp\php\php.ini comprobar que no tengan punto y coma (;) al inicio:
+
+- extension=curl
+- extension=fileinfo
+- extension=mbstring
+- extension=openssl
+- extension=pdo_mysql
+- extension=mysqli
+
+Laravel tambien usa extensiones estandar como ctype, dom, filter, hash, pcre, session, tokenizer y xml. XAMPP las incluye normalmente.
+
+Para confirmar la conexion con MySQL despues de instalar, se puede ejecutar:
+& 'C:\xampp\php\php.exe' -m | Select-String 'pdo_mysql|mysqli|mbstring|openssl|fileinfo|curl'
+
+
+3. ARCHIVOS DE DEPENDENCIAS QUE DEBEN MANTENERSE EN GIT
+-------------------------------------------------------
+
+Estos archivos ya describen todas las dependencias y DEBEN mantenerse en el repositorio:
+
+- composer.json y composer.lock: paquetes PHP/Laravel.
+- package.json y package-lock.json: paquetes JavaScript, Vite y frontend.
+- .env.example: plantilla de configuracion sin secretos.
+
+NO se debe subir el archivo .env. Contiene configuracion local, APP_KEY y posiblemente GEMINI_API_KEY.
+Cada integrante crea su propio .env desde .env.example.
+
+
+4. CREAR LA BASE DE DATOS LOCAL
+-------------------------------
+
+1) Iniciar MySQL desde el panel de XAMPP.
+2) Abrir http://localhost/phpmyadmin.
+3) Crear una base de datos nueva con este nombre y cotejamiento:
+
+   Nombre: haircut_studio_laravel
+   Cotejamiento recomendado: utf8mb4_unicode_ci
+
+No usar la base legacy llamada haircut_studio para la aplicacion Laravel.
+No ejecutar "migrate:fresh" sobre haircut_studio: eliminaria sus tablas.
+
+
+5. CONFIGURAR EL ARCHIVO .ENV
+-----------------------------
+
+Desde la carpeta HaircutHomeStudio, crear el archivo local:
+
+Copy-Item .env.example .env
+
+Abrir .env y verificar estos valores para XAMPP por defecto:
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=haircut_studio_laravel
+DB_USERNAME=root
+DB_PASSWORD=
+QUEUE_CONNECTION=database
+
+Si el usuario root tiene contrasena en ese computador, escribirla solo en DB_PASSWORD dentro de .env.
+
+La IA viene desactivada de manera segura en .env.example:
+
+AI_ENABLED=false
+GEMINI_API_KEY=
+
+Para usar Gemini real, cada persona debe usar su propia clave privada en .env. Nunca pegarla en Git, README, capturas, JavaScript o chat.
+
+
+6. INSTALAR DEPENDENCIAS DEL PROYECTO
+-------------------------------------
+
+Ejecutar dentro de HaircutHomeStudio:
+
+composer install
+npm install
+
+Si "composer" no se reconoce, cerrar y abrir PowerShell despues de instalar Composer. Como alternativa, usar la ruta al archivo composer.phar si existe en el equipo:
+
+& 'C:\xampp\php\php.exe' composer.phar install
+
+No usar "composer update" para una instalacion normal. "composer install" respeta composer.lock y descarga las versiones que el equipo ya probo.
+
+
+7. PREPARAR LARAVEL Y LOS DATOS INICIALES
+-----------------------------------------
+
+Ejecutar estos comandos uno por uno:
+
+& 'C:\xampp\php\php.exe' artisan key:generate
+& 'C:\xampp\php\php.exe' artisan migrate --seed
+& 'C:\xampp\php\php.exe' artisan storage:link
+& 'C:\Program Files\nodejs\npm.cmd' run build
+
+Que hace cada comando:
+
+- key:generate: crea la APP_KEY local dentro de .env.
+- migrate --seed: crea tablas y carga usuarios, servicios, productos y datos demostrativos.
+- storage:link: permite mostrar fotos de referencia de reservas almacenadas por Laravel.
+- npm run build: compila CSS y JavaScript para el navegador.
+
+Si el enlace de storage ya existe, Laravel informara que no necesita crearlo otra vez.
+
+
+8. EJECUTAR LA APLICACION
+-------------------------
+
+En una terminal, dentro de HaircutHomeStudio:
+
+& 'C:\xampp\php\php.exe' artisan serve
+
+Abrir en el navegador:
+http://127.0.0.1:8000
+
+Para desarrollo de estilos o JavaScript, abrir una segunda terminal y ejecutar:
+
+& 'C:\Program Files\nodejs\npm.cmd' run dev
+
+Con npm run dev no es necesario ejecutar npm run build cada vez que se cambia CSS o JS; Vite recompila durante el desarrollo.
+
+
+9. ACTIVAR Y EJECUTAR GEMINI (OPCIONAL)
+---------------------------------------
+
+Solo es necesario si se quiere usar la generacion real de imagenes.
+
+1) En .env configurar:
+
+AI_ENABLED=true
+AI_PROVIDER=gemini
+AI_PROCESS_SYNC=false
+GEMINI_API_KEY=CLAVE_PRIVADA_DE_GOOGLE_AI_STUDIO
+GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
+
+2) Limpiar configuracion despues de editar .env:
+
+& 'C:\xampp\php\php.exe' artisan optimize:clear
+
+3) En otra terminal, ejecutar el worker de la cola:
+
+& 'C:\xampp\php\php.exe' artisan queue:work --queue=ai,default --tries=1 --timeout=150
+
+El servidor web y el worker deben quedar abiertos en terminales distintas mientras se use Gemini.
+Si se modifica la configuracion de IA con el worker activo, ejecutar:
+
+& 'C:\xampp\php\php.exe' artisan queue:restart
+
+Para probar la interfaz sin llamar a Gemini se puede usar:
+
+AI_ENABLED=true
+AI_PROVIDER=fake
+AI_PROCESS_SYNC=true
+
+
+10. CUENTAS DEMOSTRATIVAS
+-------------------------
+
+Administrador
+Usuario: admin o admin@admin.cl
+Contrasena: admin123
+
+Admin de pruebas IA sin limite de cuota
+Usuario: admin.imagen@haircut.cl
+Contrasena: ImagenTest2026!
+
+Peluquero
+Usuario: ricardo o ricardo@me.com
+Contrasena: kako123
+
+Cliente
+Usuario: ana o ana@haircut.cl
+Contrasena: ana123
+
+La cuenta de pruebas IA se debe cambiar, desactivar o eliminar antes de publicar el sistema.
+
+
+11. COMANDOS DE MANTENIMIENTO Y VERIFICACION
+--------------------------------------------
+
+Ejecutar pruebas automatizadas:
+& 'C:\xampp\php\php.exe' artisan test
+
+Formatear PHP:
+& 'C:\xampp\php\php.exe' vendor\bin\pint
+
+Limpiar caches de Laravel despues de cambiar configuracion, rutas o vistas:
+& 'C:\xampp\php\php.exe' artisan optimize:clear
+
+Limpiar imagenes IA vencidas:
+& 'C:\xampp\php\php.exe' artisan ai:purge
+
+Ver estado de migraciones:
+& 'C:\xampp\php\php.exe' artisan migrate:status
+
+
+12. ERRORES FRECUENTES
+----------------------
+
+"could not find driver" o falla la conexion MySQL:
+- Verificar que MySQL este iniciado en XAMPP.
+- Verificar extension=pdo_mysql en C:\xampp\php\php.ini.
+- Revisar DB_DATABASE, DB_USERNAME y DB_PASSWORD en .env.
+- Ejecutar artisan optimize:clear despues de cambiar .env.
+
+"Vite manifest not found":
+- Ejecutar npm install y luego npm run build.
+- Durante desarrollo, comprobar que npm run dev siga abierto.
+
+"No application encryption key has been specified":
+- Ejecutar php artisan key:generate.
+
+La simulacion IA queda en pendiente:
+- Verificar AI_ENABLED, AI_PROVIDER y GEMINI_API_KEY en .env.
+- Iniciar el worker queue:work en otra terminal.
+- Reiniciar el worker con artisan queue:restart despues de modificar .env.
+
+Las fotos de reservas no se ven:
+- Ejecutar php artisan storage:link.
+
+Una migracion falla porque ya existe una tabla:
+- Ejecutar artisan migrate:status para revisar el estado.
+- No borrar tablas ni usar migrate:fresh sin confirmar que la base activa sea haircut_studio_laravel.
+
+
+RESUMEN MINIMO PARA UN NUEVO INTEGRANTE
+---------------------------------------
+
+1) Instalar XAMPP, Composer, Node.js LTS y Git.
+2) Iniciar MySQL en XAMPP.
+3) Crear haircut_studio_laravel en phpMyAdmin.
+4) Copiar .env.example a .env y configurar MySQL.
+5) Ejecutar composer install y npm install.
+6) Ejecutar artisan key:generate, artisan migrate --seed, artisan storage:link y npm run build.
+7) Ejecutar artisan serve y abrir http://127.0.0.1:8000.
+8) Solo para Gemini real: configurar clave privada e iniciar queue:work en una segunda terminal.
