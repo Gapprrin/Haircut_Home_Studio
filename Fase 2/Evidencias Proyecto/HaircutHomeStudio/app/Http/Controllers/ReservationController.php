@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AiGeneration;
 use App\Models\Categoria;
 use App\Models\Reserva;
 use App\Models\Servicio;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ReservationController extends Controller
@@ -88,6 +90,7 @@ class ReservationController extends Controller
                 $estados[$dia] = $this->availability->estadoDia($fechaDia, $servicio);
             }
         }
+        $aiGeneration = $this->selectedAiGeneration($request, $servicio);
 
         return view('reservas.create', [
             'categorias' => $categorias,
@@ -104,6 +107,7 @@ class ReservationController extends Controller
             'semanas' => $semanas,
             'estados' => $estados,
             'mesesVisibles' => $this->availability->mesesVisiblesCliente(),
+            'aiGeneration' => $aiGeneration,
         ]);
     }
 
@@ -115,6 +119,7 @@ class ReservationController extends Controller
             'hora' => ['required', 'date_format:H:i'],
             'lugar' => ['required', Rule::in(['salon', 'domicilio'])],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
+            'ai_generation_id' => ['nullable', 'integer'],
         ], [
             'foto.image' => 'Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.',
             'foto.max' => 'La foto no puede superar 3 MB.',
@@ -130,8 +135,26 @@ class ReservationController extends Controller
                     throw new DomainException('La hora seleccionada ya no está disponible.');
                 }
 
+                $aiGeneration = null;
+                if (! empty($datos['ai_generation_id'])) {
+                    $aiGeneration = AiGeneration::query()
+                        ->whereKey($datos['ai_generation_id'])
+                        ->where('usuario_id', $request->user()->id)
+                        ->where('servicio_id', $servicio->id)
+                        ->where('status', 'completed')
+                        ->whereNull('reserva_id')
+                        ->where('expires_at', '>', now())
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $aiGeneration?->output_path || ! Storage::disk('local')->exists($aiGeneration->output_path)) {
+                        throw ValidationException::withMessages([
+                            'ai_generation_id' => 'La simulación seleccionada ya no está disponible.',
+                        ]);
+                    }
+                }
+
                 $foto = $request->file('foto')?->store('fotos', 'public');
-                Reserva::create([
+                $reserva = Reserva::create([
                     'usuario_id' => $request->user()->id,
                     'servicio_id' => $servicio->id,
                     'fecha' => $datos['fecha'],
@@ -140,6 +163,17 @@ class ReservationController extends Controller
                     'lugar' => $datos['lugar'],
                     'estado' => 'pendiente',
                 ]);
+
+                if ($aiGeneration) {
+                    $appointmentExpiry = CarbonImmutable::createFromFormat(
+                        'Y-m-d H:i',
+                        $datos['fecha'].' '.$datos['hora'],
+                    )->addMinutes(max(60, $servicio->duracion_min))->addDay();
+                    $aiGeneration->update([
+                        'reserva_id' => $reserva->id,
+                        'expires_at' => $appointmentExpiry->max($aiGeneration->expires_at),
+                    ]);
+                }
             });
         } catch (DomainException) {
             if ($foto) {
@@ -184,5 +218,25 @@ class ReservationController extends Controller
         }
 
         return $fecha;
+    }
+
+    private function selectedAiGeneration(Request $request, Servicio $servicio): ?AiGeneration
+    {
+        if ($request->integer('ai_generation') < 1) {
+            return null;
+        }
+
+        $generation = AiGeneration::query()
+            ->whereKey($request->integer('ai_generation'))
+            ->where('usuario_id', $request->user()->id)
+            ->where('servicio_id', $servicio->id)
+            ->where('status', 'completed')
+            ->whereNull('reserva_id')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        return $generation?->output_path && Storage::disk('local')->exists($generation->output_path)
+            ? $generation
+            : null;
     }
 }

@@ -6,6 +6,7 @@
     $classes = ['has-home-header', $isHome ? 'home-page' : 'app-page'];
     if ($page === 'login') $classes[] = 'login-page';
     if ($page === 'nueva') $classes[] = 'book-page';
+    if ($page === 'ai') $classes[] = 'ai-page';
     if ($page === 'disponibilidad') $classes[] = 'avail-page';
     if ($section === 'admin') $classes[] = 'admin-page';
     if ($isHome) $classes[] = 'user-motion';
@@ -83,9 +84,13 @@
             @elseif($usuario?->rol === 'admin')
                 <a href="{{ route('admin.servicios.index') }}" class="nav-link {{ $page === 'servicios' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✂</span> Servicios</a>
                 <a href="{{ route('admin.catalogo.index') }}" class="nav-link {{ $page === 'catalogo' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">▣</span> Catálogo</a>
+                <a href="{{ route('ai.index') }}" class="nav-link {{ $page === 'ai' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✦</span> Simulador</a>
             @else
                 <a href="{{ route('home') }}" class="nav-link {{ $page === 'inicio' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">⌂</span> Inicio</a>
                 <a href="{{ route('productos.index') }}" class="nav-link {{ $page === 'productos' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◈</span> Productos</a>
+                @auth
+                    <a href="{{ route('ai.index') }}" class="nav-link {{ $page === 'ai' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✦</span> Simulador</a>
+                @endauth
                 <a href="{{ route('reservas.create') }}" class="nav-link {{ $page === 'nueva' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✎</span> Reservar</a>
                 @auth
                     <a href="{{ route('reservas.index') }}" class="nav-link {{ $page === 'mis' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◷</span> Mis reservas</a>

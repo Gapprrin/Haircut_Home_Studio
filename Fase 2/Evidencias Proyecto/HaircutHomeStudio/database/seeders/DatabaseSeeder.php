@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,13 +17,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         DB::table('usuarios')->insert([
-            ['id' => 1, 'nombre' => 'Administrador', 'email' => 'admin@admin.cl', 'password' => '$2y$10$VoCY9sMcCNHglwe.P/2DfumxW29mcf5OtcWHN/WVSuccjEPCmJmXa', 'rol' => 'admin', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 2, 'nombre' => 'Ricardo', 'email' => 'ricardo@me.com', 'password' => '$2y$10$EbBQ8mLf7lekhA.01lr6zeRX/..gby5ug6zb51oi5uiMQ9/DaP9Sq', 'rol' => 'peluquero', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 3, 'nombre' => 'Cliente Demo', 'email' => 'cliente@haircut.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 4, 'nombre' => 'Ana', 'email' => 'ana@haircut.cl', 'password' => '$2y$10$fj.pjC1kYGdi5vAOuKcts.XmZqJPaZrYrdZ4Gtxn8mUzlwKO4LbPK', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 5, 'nombre' => 'Camila Rojas', 'email' => 'camila@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 6, 'nombre' => 'Diego Pérez', 'email' => 'diego@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email'],
-            ['id' => 7, 'nombre' => 'Fernanda López', 'email' => 'fernanda@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email'],
+            ['id' => 1, 'nombre' => 'Administrador', 'email' => 'admin@admin.cl', 'password' => '$2y$10$VoCY9sMcCNHglwe.P/2DfumxW29mcf5OtcWHN/WVSuccjEPCmJmXa', 'rol' => 'admin', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 2, 'nombre' => 'Ricardo', 'email' => 'ricardo@me.com', 'password' => '$2y$10$EbBQ8mLf7lekhA.01lr6zeRX/..gby5ug6zb51oi5uiMQ9/DaP9Sq', 'rol' => 'peluquero', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 3, 'nombre' => 'Cliente Demo', 'email' => 'cliente@haircut.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 4, 'nombre' => 'Ana', 'email' => 'ana@haircut.cl', 'password' => '$2y$10$fj.pjC1kYGdi5vAOuKcts.XmZqJPaZrYrdZ4Gtxn8mUzlwKO4LbPK', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 5, 'nombre' => 'Camila Rojas', 'email' => 'camila@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 6, 'nombre' => 'Diego Pérez', 'email' => 'diego@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 7, 'nombre' => 'Fernanda López', 'email' => 'fernanda@correo.cl', 'password' => '$2y$10$3tAusVgmF5O2dgde4RgTjukQ1LDM.7TKjpE.OtECw0CATUo5DDAli', 'rol' => 'cliente', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => false],
+            ['id' => 8, 'nombre' => 'Admin Test Imagen', 'email' => 'admin.imagen@haircut.cl', 'password' => Hash::make('ImagenTest2026!'), 'rol' => 'admin', 'es_invitado' => false, 'origen' => 'email', 'ai_sin_limite' => true],
         ]);
 
         DB::table('categorias')->insert([

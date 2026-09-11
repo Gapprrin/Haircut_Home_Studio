@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reserva extends Model
 {
@@ -31,6 +32,11 @@ class Reserva extends Model
     public function servicio(): BelongsTo
     {
         return $this->belongsTo(Servicio::class, 'servicio_id');
+    }
+
+    public function generacionesIa(): HasMany
+    {
+        return $this->hasMany(AiGeneration::class, 'reserva_id');
     }
 
     public function puedeCancelar(): bool

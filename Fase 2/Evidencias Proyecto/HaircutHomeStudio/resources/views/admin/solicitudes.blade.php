@@ -15,7 +15,12 @@
                     <td data-label="Servicio">{{ $solicitud->servicio->nombre }}</td>
                     <td data-label="Lugar">{{ \App\Support\Format::lugar($solicitud->lugar) }}</td>
                     <td data-label="Fecha / Hora">{{ $solicitud->fecha->format('d/m') }} · {{ substr($solicitud->hora, 0, 5) }}</td>
-                    <td data-label="Foto">@if($solicitud->foto)<a href="{{ app(\App\Services\MediaService::class)->url($solicitud->foto) }}" target="_blank">Ver foto</a>@else<span class="hint">(sin foto)</span>@endif</td>
+                    <td data-label="Foto">
+                        @if($solicitud->foto)<a href="{{ app(\App\Services\MediaService::class)->url($solicitud->foto) }}" target="_blank">Referencia</a>@endif
+                        @php($simulation = $solicitud->generacionesIa->first())
+                        @if($simulation)<a href="{{ route('ai.image', [$simulation, 'output']) }}" target="_blank">Simulación IA</a>@endif
+                        @if(!$solicitud->foto && !$simulation)<span class="hint">(sin foto)</span>@endif
+                    </td>
                     <td data-label="Acción">
                         <div class="actions">
                             <form method="post" action="{{ route('peluquero.solicitudes.update', $solicitud) }}">@csrf @method('PATCH')<input type="hidden" name="accion" value="confirmar"><button type="submit" class="btn-primary">Confirmar</button></form>

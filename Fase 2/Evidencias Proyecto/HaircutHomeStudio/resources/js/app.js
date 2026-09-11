@@ -354,6 +354,224 @@ function initSmallInteractions() {
 	}
 }
 
+function initAiStudio() {
+	const input = document.getElementById('ai-photo');
+	const drop = document.querySelector('[data-ai-photo-drop]');
+	const preview = document.querySelector('[data-ai-photo-preview]');
+	const image = preview?.querySelector('img');
+	const change = document.querySelector('[data-ai-photo-change]');
+	const error = document.querySelector('[data-ai-photo-error]');
+	let objectUrl;
+
+	const reset = () => {
+		if (objectUrl) URL.revokeObjectURL(objectUrl);
+		objectUrl = undefined;
+		if (input) input.value = '';
+		if (preview) preview.hidden = true;
+		if (drop) drop.hidden = false;
+		if (change) change.hidden = true;
+		image?.removeAttribute('src');
+		if (error) error.hidden = true;
+	};
+	const select = (file) => {
+		if (!file || !input || !preview || !image || !drop) return;
+		if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 6 * 1024 * 1024) {
+			reset();
+			if (error) {
+				error.textContent = file.size > 6 * 1024 * 1024 ? 'La fotografía no puede superar 6 MB.' : 'Usa una fotografía JPG o PNG.';
+				error.hidden = false;
+			}
+			return;
+		}
+		if (objectUrl) URL.revokeObjectURL(objectUrl);
+		objectUrl = URL.createObjectURL(file);
+		image.src = objectUrl;
+		preview.hidden = false;
+		drop.hidden = true;
+		if (change) change.hidden = false;
+		if (error) error.hidden = true;
+	};
+
+	input?.addEventListener('change', () => select(input.files?.[0]));
+	['dragenter', 'dragover'].forEach((name) => drop?.addEventListener(name, (event) => {
+		event.preventDefault();
+		drop.classList.add('is-drag');
+	}));
+	['dragleave', 'drop'].forEach((name) => drop?.addEventListener(name, (event) => {
+		event.preventDefault();
+		drop.classList.remove('is-drag');
+	}));
+	drop?.addEventListener('drop', (event) => {
+		const file = event.dataTransfer?.files?.[0];
+		if (!file || !input) return;
+		try {
+			const transfer = new DataTransfer();
+			transfer.items.add(file);
+			input.files = transfer.files;
+		} catch {}
+		select(file);
+	});
+
+	const categoryTabs = Array.from(document.querySelectorAll('[data-ai-category-tab]'));
+	const categoryPanels = Array.from(document.querySelectorAll('[data-ai-category-panel]'));
+	categoryTabs.forEach((tab) => {
+		tab.addEventListener('click', () => {
+			if (tab.getAttribute('aria-selected') === 'true') return;
+			const category = tab.dataset.aiCategoryTab;
+			document.querySelectorAll('input[name="servicio_id"]').forEach((radio) => {
+				radio.checked = false;
+			});
+			categoryTabs.forEach((item) => {
+				const active = item === tab;
+				item.classList.toggle('is-active', active);
+				item.setAttribute('aria-selected', active ? 'true' : 'false');
+			});
+			categoryPanels.forEach((panel) => {
+				const active = panel.dataset.aiCategoryPanel === category;
+				panel.hidden = !active;
+				panel.querySelectorAll('input[name="servicio_id"]').forEach((radio) => {
+					radio.required = active;
+				});
+			});
+		});
+	});
+
+	const statusRoot = document.querySelector('[data-ai-status-url]');
+	if (statusRoot) {
+		const poll = window.setInterval(async () => {
+			try {
+				const response = await fetch(statusRoot.dataset.aiStatusUrl, { headers: { Accept: 'application/json' } });
+				if (!response.ok) return;
+				const status = await response.json();
+				if (!['pending', 'processing'].includes(status.status)) {
+					window.clearInterval(poll);
+					window.location.replace(status.show_url);
+				}
+			} catch {}
+		}, 3000);
+	}
+}
+
+function initBookingWizard() {
+	const wizard = document.querySelector('[data-book-wizard]');
+	if (!wizard) return;
+
+	const stepOrder = ['servicio', 'fecha', 'referencia', 'lugar', 'resumen'];
+	const steps = new Map([...wizard.querySelectorAll('[data-book-step]')].map((step) => [step.dataset.bookStep, step]));
+	const progress = new Map([...wizard.querySelectorAll('[data-book-progress]')].map((item) => [item.dataset.bookProgress, item]));
+	const form = wizard.querySelector('.book-wizard-form');
+	const categoryTabs = [...wizard.querySelectorAll('[data-book-category-tab]')];
+	const categoryPanels = [...wizard.querySelectorAll('[data-book-category-panel]')];
+	const serviceInput = wizard.querySelector('input[name="servicio_id"]');
+	const serviceOptions = [...wizard.querySelectorAll('[data-book-service-option]')];
+	let current = stepOrder.includes(wizard.dataset.bookInitialStep) ? wizard.dataset.bookInitialStep : 'servicio';
+	let selectedServiceUrl;
+
+	const selectService = (option) => {
+		if (!option || !serviceInput) return;
+		serviceInput.value = option.dataset.bookServiceId;
+		selectedServiceUrl = option.dataset.bookServiceUrl;
+		serviceOptions.forEach((item) => {
+			const selected = item === option;
+			item.classList.toggle('is-selected', selected);
+			const label = item.querySelector(':scope > span');
+			if (label) label.textContent = selected ? 'Seleccionado' : 'Elegir';
+		});
+	};
+
+	const updatePlace = () => {
+		const selected = wizard.querySelector('input[name="lugar"]:checked');
+		const label = selected?.closest('.book-place-option')?.querySelector('strong')?.textContent?.trim();
+		const summary = wizard.querySelector('[data-book-summary-place]');
+		if (label && summary) summary.textContent = label;
+	};
+	const show = (target, scroll = true) => {
+		if (!steps.has(target)) return;
+		const previous = steps.get(current);
+		const previousHeight = form?.getBoundingClientRect().height || 0;
+		current = target;
+		const currentIndex = stepOrder.indexOf(target);
+		steps.forEach((step, key) => {
+			const active = key === target;
+			step.hidden = !active;
+			step.classList.remove('is-entering');
+			step.classList.toggle('is-active', active);
+		});
+		const activeStep = steps.get(target);
+		if (form && previous && previous !== activeStep && previousHeight) {
+			form.style.height = `${previousHeight}px`;
+			activeStep.classList.add('is-entering');
+			requestAnimationFrame(() => {
+				form.style.height = `${activeStep.getBoundingClientRect().height}px`;
+				requestAnimationFrame(() => activeStep.classList.remove('is-entering'));
+			});
+			window.setTimeout(() => { form.style.height = ''; }, 460);
+		}
+		progress.forEach((item, key) => {
+			const index = stepOrder.indexOf(key);
+			item.classList.toggle('is-active', key === target);
+			item.classList.toggle('is-complete', index < currentIndex);
+			item.setAttribute('aria-current', key === target ? 'step' : 'false');
+		});
+		updatePlace();
+		if (scroll) wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	};
+	const canAdvance = (target) => {
+		if (target !== 'referencia') return true;
+		const hasDate = Boolean(wizard.querySelector('input[name="fecha"]')?.value);
+		const hasTime = Boolean(wizard.querySelector('input[name="hora"]')?.value);
+		const warning = wizard.querySelector('[data-book-step-warning]');
+		if (warning) warning.hidden = hasDate && hasTime;
+		return hasDate && hasTime;
+	};
+
+	wizard.querySelectorAll('[data-book-next]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const target = button.dataset.bookNext;
+			if (current === 'servicio' && selectedServiceUrl) {
+				window.location.assign(selectedServiceUrl);
+				return;
+			}
+			if (canAdvance(target)) show(target);
+		});
+	});
+	wizard.querySelectorAll('[data-book-back]').forEach((button) => {
+		button.addEventListener('click', () => show(button.dataset.bookBack));
+	});
+	categoryTabs.forEach((tab) => {
+		tab.addEventListener('click', (event) => {
+			if (tab.getAttribute('aria-selected') === 'true') return;
+			event.preventDefault();
+			const category = tab.dataset.bookCategoryTab;
+			categoryTabs.forEach((item) => {
+				const active = item === tab;
+				item.classList.toggle('is-active', active);
+				item.setAttribute('aria-selected', active ? 'true' : 'false');
+			});
+			categoryPanels.forEach((panel) => {
+				const active = panel.dataset.bookCategoryPanel === category;
+				panel.hidden = !active;
+				if (active) {
+					panel.classList.remove('is-entering');
+					requestAnimationFrame(() => panel.classList.add('is-entering'));
+				}
+			});
+			const firstService = wizard.querySelector(`[data-book-category-panel="${category}"] [data-book-service-option]`);
+			selectService(firstService);
+			selectedServiceUrl = tab.dataset.bookCategoryServiceUrl;
+		});
+	});
+	serviceOptions.forEach((option) => {
+		option.addEventListener('click', (event) => {
+			event.preventDefault();
+			selectService(option);
+		});
+	});
+	wizard.querySelectorAll('input[name="lugar"]').forEach((input) => input.addEventListener('change', updatePlace));
+
+	show(current, false);
+}
+
 initReveal();
 initNavigation();
 initLoader();
@@ -363,3 +581,5 @@ initPhotoPicker();
 initAvailability();
 initHours();
 initSmallInteractions();
+initAiStudio();
+initBookingWizard();

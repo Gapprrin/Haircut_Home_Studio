@@ -2,7 +2,13 @@
 
 namespace App\Providers;
 
+use App\Contracts\AiImageProvider;
 use App\Models\Configuracion;
+use App\Services\FakeAiImageProvider;
+use App\Services\GeminiImageProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -13,7 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(AiImageProvider::class, function ($app): AiImageProvider {
+            return config('ai.provider') === 'fake'
+                ? $app->make(FakeAiImageProvider::class)
+                : $app->make(GeminiImageProvider::class);
+        });
     }
 
     /**
@@ -21,6 +31,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('ai-generations', function (Request $request) {
+            if ($request->user()?->ai_sin_limite) {
+                return Limit::none();
+            }
+
+            return [
+                Limit::perMinute(2)->by('ai-user:'.($request->user()?->id ?? 'guest')),
+                Limit::perMinute(4)->by('ai-ip:'.$request->ip()),
+            ];
+        });
+
         View::composer('layouts.app', function ($view): void {
             $view->with('layoutConfig', Configuracion::query()->first() ?? new Configuracion([
                 'hora_inicio' => '10:30:00',

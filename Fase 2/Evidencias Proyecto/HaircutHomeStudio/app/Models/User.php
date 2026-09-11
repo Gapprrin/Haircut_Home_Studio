@@ -32,6 +32,7 @@ class User extends Authenticatable
         'rol',
         'es_invitado',
         'origen',
+        'ai_sin_limite',
     ];
 
     /**
@@ -54,6 +55,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'es_invitado' => 'boolean',
+            'ai_sin_limite' => 'boolean',
         ];
     }
 
@@ -75,5 +77,10 @@ class User extends Authenticatable
     public function reservas(): HasMany
     {
         return $this->hasMany(Reserva::class, 'usuario_id');
+    }
+
+    public function generacionesIa(): HasMany
+    {
+        return $this->hasMany(AiGeneration::class, 'usuario_id');
     }
 }

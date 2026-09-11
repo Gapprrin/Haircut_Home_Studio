@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\HoursController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SolicitudController;
+use App\Http\Controllers\AiStudioController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
@@ -24,12 +25,25 @@ Route::middleware('guest')->group(function (): void {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+Route::middleware(['auth', 'role:cliente,admin'])->group(function (): void {
+    Route::get('/simulador', [AiStudioController::class, 'index'])->name('ai.index');
+    Route::post('/simulador', [AiStudioController::class, 'store'])->middleware('throttle:ai-generations')->name('ai.store');
+    Route::get('/simulador/{generation}', [AiStudioController::class, 'show'])->name('ai.show');
+    Route::get('/simulador/{generation}/estado', [AiStudioController::class, 'status'])->name('ai.status');
+    Route::delete('/simulador/{generation}/imagenes', [AiStudioController::class, 'destroyMedia'])->name('ai.media.destroy');
+});
+
 Route::middleware(['auth', 'role:cliente'])->group(function (): void {
     Route::get('/reservar', [ReservationController::class, 'create'])->name('reservas.create');
     Route::post('/reservar', [ReservationController::class, 'store'])->name('reservas.store');
     Route::get('/mis-reservas', [ReservationController::class, 'index'])->name('reservas.index');
     Route::patch('/mis-reservas/{reserva}/cancelar', [ReservationController::class, 'cancel'])->name('reservas.cancel');
 });
+
+Route::get('/simulador/{generation}/imagen/{kind}', [AiStudioController::class, 'image'])
+    ->middleware('auth')
+    ->whereIn('kind', ['input', 'output'])
+    ->name('ai.image');
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/servicios', [ServiceController::class, 'index'])->name('servicios.index');

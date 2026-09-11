@@ -2,6 +2,15 @@
 
 @php
     $media = app(\App\Services\MediaService::class);
+    $steps = [
+        'servicio' => ['number' => 1, 'label' => 'Servicio'],
+        'fecha' => ['number' => 2, 'label' => 'Fecha'],
+        'referencia' => ['number' => 3, 'label' => 'Referencia'],
+        'lugar' => ['number' => 4, 'label' => 'Lugar'],
+        'resumen' => ['number' => 5, 'label' => 'Confirmar'],
+    ];
+    $initialStep = request()->string('paso')->toString();
+    $initialStep = array_key_exists($initialStep, $steps) ? $initialStep : 'servicio';
     $baseQuery = [
         'cat' => $categoria->slug,
         'serv' => $servicio->id,
@@ -10,6 +19,8 @@
         'hora' => $hora,
         'anio' => $anio,
         'mes' => $mes,
+        'ai_generation' => $aiGeneration?->id,
+        'paso' => $initialStep,
     ];
     $bookingUrl = function (array $changes = []) use ($baseQuery) {
         $query = array_filter(array_merge($baseQuery, $changes), fn ($value) => $value !== '' && $value !== null);
@@ -23,7 +34,9 @@
     $range = [];
     if ($hora !== '') {
         $start = \Carbon\CarbonImmutable::createFromFormat('H:i', $hora);
-        for ($i = 0; $i < $durationHours; $i++) $range[$start->addHours($i)->format('H:i')] = true;
+        for ($i = 0; $i < $durationHours; $i++) {
+            $range[$start->addHours($i)->format('H:i')] = true;
+        }
     }
     $hourLabel = fn (string $value) => \Carbon\CarbonImmutable::createFromFormat('H:i', $value)->format('H:i');
     $longService = $durationHours >= 3;
@@ -35,159 +48,155 @@
 @endphp
 
 @section('content')
-<section class="book">
-    <div class="book-head"><h2>Reserva aquí</h2></div>
-
-    <div class="book-block">
-        <h3 class="book-section-title">Seleccionar servicio</h3>
-        <div class="book-icon-grid">
-            @foreach($categorias as $item)
-                @php
-                    $selected = $item->id === $categoria->id;
-                    $icon = $media->url($item->imagen) ?? asset('img/iconos/'.($fallbackIcons[$item->slug] ?? 'tratamiento.png'));
-                @endphp
-                @if($selected)
-                    <span class="book-svc is-on"><span class="book-svc-ico"><img class="icon-pack" src="{{ $icon }}" alt=""></span><span class="book-svc-name">{{ $item->nombre }}</span></span>
-                @else
-                    <a class="book-svc" href="{{ $bookingUrl(['cat' => $item->slug, 'serv' => $item->servicios->first()->id, 'hora' => '']) }}" data-no-loader>
-                        <span class="book-svc-ico"><img class="icon-pack" src="{{ $icon }}" alt=""></span><span class="book-svc-name">{{ $item->nombre }}</span>
-                    </a>
-                @endif
-            @endforeach
-        </div>
+<section class="book" data-book-wizard data-book-initial-step="{{ $initialStep }}">
+    <div class="book-head">
+        <div><p class="home-kicker">Agenda tu visita</p><h2>Reserva aquí</h2></div>
+        <a href="{{ route('home') }}" class="book-close" aria-label="Cancelar reserva" title="Cancelar reserva">×</a>
     </div>
 
-    <div class="book-block">
-        <h3 class="book-section-title">Tipo de servicio</h3>
-        <div class="book-icon-grid">
-            @foreach($categoria->servicios as $item)
-                @php
-                    $selected = $item->id === $servicio->id;
-                    $icon = $media->url($item->imagen) ?? asset('img/iconos/'.($fallbackIcons[$categoria->slug] ?? 'tratamiento.png'));
-                @endphp
-                @if($selected)
-                    <span class="book-svc is-on"><span class="book-svc-ico"><img class="icon-pack" src="{{ $icon }}" alt=""></span><span class="book-svc-name">{{ $item->nombre }}</span></span>
-                @else
-                    <a class="book-svc" href="{{ $bookingUrl(['serv' => $item->id, 'hora' => '']) }}" data-no-loader>
-                        <span class="book-svc-ico"><img class="icon-pack" src="{{ $icon }}" alt=""></span><span class="book-svc-name">{{ $item->nombre }}</span>
-                    </a>
-                @endif
-            @endforeach
-        </div>
-        @if($servicio->descripcion)<p class="book-duration"><strong>{{ $servicio->nombre }}:</strong> {{ $servicio->descripcion }}</p>@endif
-    </div>
+    <ol class="book-progress" aria-label="Progreso de reserva">
+        @foreach($steps as $key => $step)
+            <li data-book-progress="{{ $key }}"><span>{{ $step['number'] }}</span><small>{{ $step['label'] }}</small></li>
+        @endforeach
+    </ol>
 
-    <div class="book-block">
-        <h3 class="book-section-title">Seleccionar fecha</h3>
-        <div class="book-month">
-            @if($previousMonth)
-                <a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'fecha' => '', 'hora' => '']) }}" aria-label="Mes anterior">‹</a>
-            @else
-                <span class="book-nav is-off" aria-hidden="true"></span>
-            @endif
-            <div class="book-month-pill">{{ \App\Support\Format::MESES[$mes] }} {{ $anio }}</div>
-            @if($nextMonth)
-                <a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'fecha' => '', 'hora' => '']) }}" aria-label="Mes siguiente">›</a>
-            @else
-                <span class="book-nav is-off" aria-hidden="true"></span>
-            @endif
-        </div>
-        <table class="book-cal">
-            <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
-            @foreach($semanas as $semana)
-                <tr>
-                @foreach($semana as $day)
-                    <td>
-                    @if($day)
-                        @php
-                            $dayDate = sprintf('%04d-%02d-%02d', $anio, $mes, $day);
-                            $state = $estados[$day];
-                            $selected = $dayDate === $fecha;
-                            $class = 'd st-'.$state.($selected ? ' is-sel' : '');
-                        @endphp
-                        @if(in_array($state, ['disponible', 'ocupado'], true) && !$selected)
-                            <a class="{{ $class }}" href="{{ $bookingUrl(['fecha' => $dayDate, 'hora' => '', 'anio' => $anio, 'mes' => $mes]) }}">{{ $day }}</a>
-                        @else
-                            <span class="{{ $class }}">{{ $day }}</span>
-                        @endif
-                    @endif
-                    </td>
-                @endforeach
-                </tr>
-            @endforeach
-        </table>
-        <ul class="book-legend"><li><span class="book-dot is-free"></span> Disponible</li><li><span class="book-dot is-busy"></span> No disponible</li></ul>
-    </div>
-
-    @if($fecha !== '')
-        <div class="book-block">
-            <h3 class="book-section-title">Seleccionar hora</h3>
-            <p class="hint">{{ $longService ? 'En colores largos se recomienda la mañana. ' : '' }}El bloque se reserva desde la hora que elijas hacia adelante.</p>
-            @if($sugerencias['misma'] || $sugerencias['otra'])
-                <p class="book-suggest">Hora más cercana:
-                    @if($sugerencias['misma'])
-                        <a href="{{ $bookingUrl(['hora' => $sugerencias['misma']]) }}" data-no-loader>{{ $hourLabel($sugerencias['misma']) }}</a>
-                    @else<span>no hay en este día</span>@endif
-                    @if($sugerencias['otra'])
-                        · o <a href="{{ $bookingUrl(['fecha' => $sugerencias['otra']['fecha'], 'hora' => $sugerencias['otra']['hora'], 'anio' => substr($sugerencias['otra']['fecha'], 0, 4), 'mes' => (int) substr($sugerencias['otra']['fecha'], 5, 2)]) }}" data-no-loader>{{ \Carbon\CarbonImmutable::parse($sugerencias['otra']['fecha'])->format('d/m') }} · {{ $hourLabel($sugerencias['otra']['hora']) }}</a>
-                    @endif
-                </p>
-            @endif
-            <div class="book-hours">
-                @forelse($hourGroups as $group => $hours)
-                    @if($group !== '')<p class="book-hours-kicker">{{ $group === 'Mañana' ? 'Mañana · recomendada' : $group }}</p>@endif
-                    @foreach($hours as $slot)
-                        @php
-                            $free = isset($slotSet[$slot]);
-                            $selectedStart = $slot === $hora;
-                            $class = 'hour-pill';
-                            if ($selectedStart) $class .= ' is-on';
-                            elseif (isset($range[$slot])) $class .= ' is-range';
-                            elseif ($free) $class .= ' is-free'.($longService && $slot < '13:00' ? ' is-am' : '').(($sugerencias['misma'] ?? '') === $slot ? ' is-near' : '');
-                            else $class .= ' is-busy';
-                        @endphp
-                        @if($free && !$selectedStart)<a class="{{ $class }}" href="{{ $bookingUrl(['hora' => $slot]) }}">{{ $hourLabel($slot) }}</a>@else<span class="{{ $class }}">{{ $hourLabel($slot) }}</span>@endif
-                    @endforeach
-                @empty
-                    <p class="hint">No hay horario configurado para este servicio.</p>
-                @endforelse
-            </div>
-            <ul class="book-legend"><li><span class="book-dot is-free"></span> Disponible</li><li><span class="book-dot is-range"></span> Tu bloque</li><li><span class="book-dot is-busy"></span> No disponible</li></ul>
-        </div>
-    @endif
-
-    <form method="post" action="{{ route('reservas.store') }}" class="book-reserve" enctype="multipart/form-data">
+    <form method="post" action="{{ route('reservas.store') }}" class="book-reserve book-wizard-form" enctype="multipart/form-data">
         @csrf
-        <div class="book-card">
-            <div class="book-photo" id="book-photo">
+        <input type="hidden" name="servicio_id" value="{{ $servicio->id }}">
+        <input type="hidden" name="fecha" value="{{ $fecha }}">
+        <input type="hidden" name="hora" value="{{ $hora }}">
+        @if($aiGeneration)<input type="hidden" name="ai_generation_id" value="{{ $aiGeneration->id }}">@endif
+
+        <section class="book-step" data-book-step="servicio" @if($initialStep !== 'servicio') hidden @endif>
+            <div class="book-step-heading"><p class="home-kicker">Paso 1</p><h3>Elige el servicio</h3><p>Selecciona una categoría y después el servicio que quieres agendar.</p></div>
+            <div class="book-category-tabs" role="tablist" aria-label="Categorías de servicio">
+                @foreach($categorias as $item)
+                    @php
+                        $isActiveCategory = $item->id === $categoria->id;
+                        $icon = $media->url($item->imagen) ?? asset('img/iconos/'.($fallbackIcons[$item->slug] ?? 'tratamiento.png'));
+                    @endphp
+                    <a href="{{ $bookingUrl(['cat' => $item->slug, 'serv' => $item->servicios->first()->id, 'fecha' => '', 'hora' => '', 'paso' => 'servicio']) }}"
+                        id="book-category-tab-{{ $item->slug }}"
+                        class="book-category-tab {{ $isActiveCategory ? 'is-active' : '' }}"
+                        role="tab"
+                        aria-selected="{{ $isActiveCategory ? 'true' : 'false' }}"
+                        data-book-category-tab="{{ $item->slug }}"
+                        data-book-category-service-url="{{ $bookingUrl(['cat' => $item->slug, 'serv' => $item->servicios->first()->id, 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}"
+                        data-no-loader>
+                        <img src="{{ $icon }}" alt=""><span>{{ $item->nombre }}</span>
+                    </a>
+                @endforeach
+            </div>
+            @foreach($categorias as $categoryItem)
+                <div class="book-service-options" role="tabpanel" aria-labelledby="book-category-tab-{{ $categoryItem->slug }}" data-book-category-panel="{{ $categoryItem->slug }}" @if($categoryItem->id !== $categoria->id) hidden @endif>
+                    @foreach($categoryItem->servicios as $item)
+                        @php
+                            $selected = $item->id === $servicio->id;
+                            $icon = $media->url($item->imagen) ?? asset('img/iconos/'.($fallbackIcons[$categoryItem->slug] ?? 'tratamiento.png'));
+                        @endphp
+                        <a class="book-service-option {{ $selected ? 'is-selected' : '' }}" href="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'servicio']) }}" data-book-service-option data-book-service-id="{{ $item->id }}" data-book-service-url="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" data-no-loader><img src="{{ $icon }}" alt=""><div><strong>{{ $item->nombre }}</strong><small>{{ $item->descripcion ?: 'Servicio de Haircut Home Studio.' }}</small></div><span>{{ $selected ? 'Seleccionado' : 'Elegir' }}</span></a>
+                    @endforeach
+                </div>
+            @endforeach
+            <div class="book-step-actions"><a href="{{ route('home') }}" class="book-step-back">← Volver</a><button type="button" class="book-step-next" data-book-next="fecha">Siguiente <span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="book-step" data-book-step="fecha" @if($initialStep !== 'fecha') hidden @endif>
+            <div class="book-step-heading"><p class="home-kicker">Paso 2</p><h3>Fecha y hora</h3><p>{{ $longService ? 'Para este servicio largo recomendamos horarios de mañana.' : 'Elige una fecha y una hora disponible.' }}</p></div>
+            <div class="book-month">
+                @if($previousMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes anterior">‹</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+                <div class="book-month-pill">{{ \App\Support\Format::MESES[$mes] }} {{ $anio }}</div>
+                @if($nextMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes siguiente">›</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+            </div>
+            <table class="book-cal">
+                <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
+                @foreach($semanas as $semana)
+                    <tr>
+                    @foreach($semana as $day)
+                        <td>
+                        @if($day)
+                            @php
+                                $dayDate = sprintf('%04d-%02d-%02d', $anio, $mes, $day);
+                                $state = $estados[$day];
+                                $selected = $dayDate === $fecha;
+                                $class = 'd st-'.$state.($selected ? ' is-sel' : '');
+                            @endphp
+                            @if(in_array($state, ['disponible', 'ocupado'], true) && !$selected)
+                                <a class="{{ $class }}" href="{{ $bookingUrl(['fecha' => $dayDate, 'hora' => '', 'anio' => $anio, 'mes' => $mes, 'paso' => 'fecha']) }}">{{ $day }}</a>
+                            @else<span class="{{ $class }}">{{ $day }}</span>@endif
+                        @endif
+                        </td>
+                    @endforeach
+                    </tr>
+                @endforeach
+            </table>
+            <ul class="book-legend"><li><span class="book-dot is-free"></span> Disponible</li><li><span class="book-dot is-busy"></span> No disponible</li></ul>
+
+            @if($fecha !== '')
+                <div class="book-time-picker">
+                    <div class="book-time-picker-head"><h4>Hora para {{ \Carbon\CarbonImmutable::parse($fecha)->format('d/m') }}</h4>@if($sugerencias['misma'])<a href="{{ $bookingUrl(['hora' => $sugerencias['misma'], 'paso' => 'fecha']) }}">Más cercana: {{ $hourLabel($sugerencias['misma']) }}</a>@endif</div>
+                    <div class="book-hours">
+                        @foreach($hourGroups as $group => $hours)
+                            @if($group !== '')<p class="book-hours-kicker">{{ $group }}</p>@endif
+                            @foreach($hours as $slot)
+                                @php
+                                    $free = isset($slotSet[$slot]);
+                                    $selectedStart = $slot === $hora;
+                                    $class = 'hour-pill';
+                                    if ($selectedStart) $class .= ' is-on';
+                                    elseif (isset($range[$slot])) $class .= ' is-range';
+                                    elseif ($free) $class .= ' is-free'.($longService && $slot < '13:00' ? ' is-am' : '');
+                                    else $class .= ' is-busy';
+                                @endphp
+                                @if($free && !$selectedStart)<a class="{{ $class }}" href="{{ $bookingUrl(['hora' => $slot, 'paso' => 'fecha']) }}">{{ $hourLabel($slot) }}</a>@else<span class="{{ $class }}">{{ $hourLabel($slot) }}</span>@endif
+                            @endforeach
+                        @endforeach
+                    </div>
+                    <ul class="book-legend"><li><span class="book-dot is-free"></span> Disponible</li><li><span class="book-dot is-range"></span> Tu bloque</li><li><span class="book-dot is-busy"></span> No disponible</li></ul>
+                </div>
+            @else
+                <p class="book-step-empty">Selecciona un día disponible para ver las horas.</p>
+            @endif
+            <p class="book-step-warning" data-book-step-warning hidden>Selecciona una fecha y hora disponible para continuar.</p>
+            <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="servicio">← Atrás</button><button type="button" class="book-step-next" data-book-next="referencia">Siguiente <span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="book-step" data-book-step="referencia" @if($initialStep !== 'referencia') hidden @endif>
+            <div class="book-step-heading"><p class="home-kicker">Paso 3</p><h3>Imagen de referencia</h3><p>Opcional: agrega una inspiración para que el profesional entienda mejor el resultado que buscas.</p></div>
+            @if($aiGeneration)
+                <div class="book-ai-reference"><img src="{{ route('ai.image', [$aiGeneration, 'output']) }}" alt="Simulación de {{ $aiGeneration->servicio?->nombre ?? 'estilo' }}"><div><strong>Simulación IA incluida</strong><p>{{ $aiGeneration->servicio?->nombre ?? 'Referencia de estilo' }}</p></div></div>
+            @endif
+            <div class="book-card"><div class="book-photo" id="book-photo">
                 <input class="book-photo-input" type="file" id="book-foto" name="foto" accept="image/jpeg,image/png,image/webp,image/gif">
-                <label class="book-photo-drop" for="book-foto" id="book-photo-drop">
-                    <span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o tócala para elegir · JPG, PNG o WEBP</span>
-                </label>
+                <label class="book-photo-drop" for="book-foto" id="book-photo-drop"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o tócala para elegir · JPG, PNG o WEBP</span></label>
                 <div class="book-photo-preview" id="book-photo-preview" hidden><img alt="Vista previa de la imagen"><button type="button" class="book-photo-clear" id="book-photo-clear" aria-label="Quitar imagen">&times;</button></div>
                 <p class="book-photo-msg" id="book-photo-msg" hidden></p>
-            </div>
-        </div>
-        <div class="book-block">
-            <h3 class="book-section-title">Lugar de atención</h3>
-            <div class="book-icon-grid book-lugar-grid">
-                @foreach(['salon' => ['En el salón', 'lugar-salon.png'], 'domicilio' => ['A domicilio', 'lugar-domicilio.png']] as $key => [$label, $icon])
-                    @if($lugar === $key)
-                        <span class="book-svc book-lugar is-on"><span class="book-svc-ico"><img class="icon-pack" src="{{ asset('img/iconos/'.$icon) }}" alt=""></span><span class="book-svc-name">{{ $label }}</span></span>
-                    @else
-                        <a class="book-svc book-lugar" href="{{ $bookingUrl(['lugar' => $key]) }}" data-no-loader><span class="book-svc-ico"><img class="icon-pack" src="{{ asset('img/iconos/'.$icon) }}" alt=""></span><span class="book-svc-name">{{ $label }}</span></a>
-                    @endif
+            </div></div>
+            <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="fecha">← Atrás</button><button type="button" class="book-step-next" data-book-next="lugar">Siguiente <span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="book-step" data-book-step="lugar" @if($initialStep !== 'lugar') hidden @endif>
+            <div class="book-step-heading"><p class="home-kicker">Paso 4</p><h3>Lugar de atención</h3><p>Elige dónde prefieres realizar tu servicio.</p></div>
+            <div class="book-place-options">
+                @foreach(['salon' => ['En el salón', 'lugar-salon.png', 'Atención en Haircut Home Studio'], 'domicilio' => ['A domicilio', 'lugar-domicilio.png', 'Atención en la dirección acordada']] as $key => [$label, $icon, $description])
+                    <label class="book-place-option"><input type="radio" name="lugar" value="{{ $key }}" @checked($lugar === $key)><span class="book-place-icon"><img class="icon-pack" src="{{ asset('img/iconos/'.$icon) }}" alt=""></span><span><strong>{{ $label }}</strong><small>{{ $description }}</small></span></label>
                 @endforeach
             </div>
-        </div>
-        <div class="book-foot">
-            <input type="hidden" name="servicio_id" value="{{ $servicio->id }}">
-            <input type="hidden" name="fecha" value="{{ $fecha }}">
-            <input type="hidden" name="hora" value="{{ $hora }}">
-            <input type="hidden" name="lugar" value="{{ $lugar }}">
-            <p class="book-foot-summary"><span class="book-foot-kicker">Resumen:</span> 1 servicio · {{ \App\Support\Format::lugar($lugar) }} · {{ \App\Support\Format::duracion($servicio->duracion_min) }}@if($hora) · {{ $hourLabel($hora) }} – {{ $hourLabel($endHour) }}@endif <strong class="book-foot-price">{{ \App\Support\Format::precio($servicio->precio) }}</strong></p>
-            <div class="book-foot-actions"><button type="submit" class="btn book-btn-now" @disabled($fecha === '' || $hora === '')>Reservar</button><a href="{{ route('home') }}" class="btn book-btn-cancel" data-no-loader>Cancelar</a></div>
-        </div>
+            <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="referencia">← Atrás</button><button type="button" class="book-step-next" data-book-next="resumen">Ver resumen <span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="book-step" data-book-step="resumen" @if($initialStep !== 'resumen') hidden @endif>
+            <div class="book-step-heading"><p class="home-kicker">Paso 5</p><h3>Revisa tu reserva</h3><p>Confirma que los datos estén correctos antes de enviar la solicitud.</p></div>
+            <div class="book-summary">
+                <div class="book-summary-row"><span>Servicio</span><strong>{{ $servicio->nombre }}</strong></div>
+                <div class="book-summary-row"><span>Fecha</span><strong>{{ $fecha !== '' ? \Carbon\CarbonImmutable::parse($fecha)->format('d/m/Y') : 'Pendiente' }}</strong></div>
+                <div class="book-summary-row"><span>Hora</span><strong>{{ $hora !== '' ? $hourLabel($hora).' – '.$hourLabel($endHour) : 'Pendiente' }}</strong></div>
+                <div class="book-summary-row"><span>Lugar</span><strong data-book-summary-place>{{ \App\Support\Format::lugar($lugar) }}</strong></div>
+                <div class="book-summary-row book-summary-total"><span>Valor referencial</span><strong>{{ \App\Support\Format::precio($servicio->precio) }}</strong></div>
+            </div>
+            <p class="hint">El pago es presencial. Puedes cancelar hasta 10 minutos antes de la hora confirmada.</p>
+            <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="lugar">← Atrás</button><button type="submit" class="book-confirm" @disabled($fecha === '' || $hora === '')>Confirmar reserva <span aria-hidden="true">→</span></button></div>
+        </section>
     </form>
 </section>
 @endsection
