@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reserva extends Model
 {
@@ -14,7 +13,7 @@ class Reserva extends Model
 
     protected $table = 'reservas';
 
-    protected $fillable = ['usuario_id', 'servicio_id', 'fecha', 'hora', 'foto', 'lugar', 'estado'];
+    protected $fillable = ['usuario_id', 'servicio_id', 'ai_generation_id', 'fecha', 'hora', 'foto', 'lugar', 'estado'];
 
     protected function casts(): array
     {
@@ -34,9 +33,9 @@ class Reserva extends Model
         return $this->belongsTo(Servicio::class, 'servicio_id');
     }
 
-    public function generacionesIa(): HasMany
+    public function generacionIa(): BelongsTo
     {
-        return $this->hasMany(AiGeneration::class, 'reserva_id');
+        return $this->belongsTo(AiGeneration::class, 'ai_generation_id');
     }
 
     public function puedeCancelar(): bool

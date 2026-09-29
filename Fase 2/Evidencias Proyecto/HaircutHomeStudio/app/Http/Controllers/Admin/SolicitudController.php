@@ -21,7 +21,7 @@ class SolicitudController extends Controller
 
         return view('admin.solicitudes', [
             'solicitudes' => Reserva::query()
-                ->with(['usuario', 'servicio', 'generacionesIa' => fn ($query) => $query->where('status', 'completed')->latest('id')])
+                ->with(['usuario', 'servicio', 'generacionIa'])
                 ->where('estado', 'pendiente')
                 ->orderBy('fecha')
                 ->orderBy('hora')

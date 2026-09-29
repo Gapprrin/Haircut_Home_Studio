@@ -17,7 +17,7 @@
                     <td data-label="Fecha / Hora">{{ $solicitud->fecha->format('d/m') }} · {{ substr($solicitud->hora, 0, 5) }}</td>
                     <td data-label="Foto">
                         @if($solicitud->foto)<a href="{{ app(\App\Services\MediaService::class)->url($solicitud->foto) }}" target="_blank">Referencia</a>@endif
-                        @php($simulation = $solicitud->generacionesIa->first())
+                        @php($simulation = $solicitud->generacionIa)
                         @if($simulation)<a href="{{ route('ai.image', [$simulation, 'output']) }}" target="_blank">Simulación IA</a>@endif
                         @if(!$solicitud->foto && !$simulation)<span class="hint">(sin foto)</span>@endif
                     </td>

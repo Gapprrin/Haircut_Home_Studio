@@ -166,8 +166,7 @@ class AiStudioFlowTest extends TestCase
             'ai_generation_id' => $generation->id,
         ])->assertRedirect(route('reservas.index'));
 
-        $generation->refresh();
-        $this->assertNotNull($generation->reserva_id);
+        $this->assertSame($generation->id, \App\Models\Reserva::query()->value('ai_generation_id'));
         $this->assertTrue($generation->expires_at->greaterThan('2026-09-12 11:30:00'));
         $this->actingAs($peluquero)
             ->get(route('ai.image', [$generation, 'output']))
@@ -207,7 +206,7 @@ class AiStudioFlowTest extends TestCase
         ])->assertRedirect(route('reservas.create'))
             ->assertSessionHasErrors('ai_generation_id');
 
-        $this->assertNull($generation->fresh()->reserva_id);
+        $this->assertNull(\App\Models\Reserva::query()->value('ai_generation_id'));
         $this->assertDatabaseCount('reservas', 0);
     }
 

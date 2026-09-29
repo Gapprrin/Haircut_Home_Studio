@@ -142,7 +142,7 @@ class ReservationController extends Controller
                         ->where('usuario_id', $request->user()->id)
                         ->where('servicio_id', $servicio->id)
                         ->where('status', 'completed')
-                        ->whereNull('reserva_id')
+                        ->whereDoesntHave('reserva')
                         ->where('expires_at', '>', now())
                         ->lockForUpdate()
                         ->first();
@@ -153,10 +153,19 @@ class ReservationController extends Controller
                     }
                 }
 
+                $appointmentExpiry = null;
+                if ($aiGeneration) {
+                    $appointmentExpiry = CarbonImmutable::createFromFormat(
+                        'Y-m-d H:i',
+                        $datos['fecha'].' '.$datos['hora'],
+                    )->addMinutes(max(60, $servicio->duracion_min))->addDay();
+                }
+
                 $foto = $request->file('foto')?->store('fotos', 'public');
                 $reserva = Reserva::create([
                     'usuario_id' => $request->user()->id,
                     'servicio_id' => $servicio->id,
+                    'ai_generation_id' => $aiGeneration?->id,
                     'fecha' => $datos['fecha'],
                     'hora' => $datos['hora'],
                     'foto' => $foto,
@@ -164,15 +173,8 @@ class ReservationController extends Controller
                     'estado' => 'pendiente',
                 ]);
 
-                if ($aiGeneration) {
-                    $appointmentExpiry = CarbonImmutable::createFromFormat(
-                        'Y-m-d H:i',
-                        $datos['fecha'].' '.$datos['hora'],
-                    )->addMinutes(max(60, $servicio->duracion_min))->addDay();
-                    $aiGeneration->update([
-                        'reserva_id' => $reserva->id,
-                        'expires_at' => $appointmentExpiry->max($aiGeneration->expires_at),
-                    ]);
+                if ($aiGeneration && $appointmentExpiry) {
+                    $aiGeneration->update(['expires_at' => $appointmentExpiry->max($aiGeneration->expires_at)]);
                 }
             });
         } catch (DomainException) {
@@ -231,7 +233,7 @@ class ReservationController extends Controller
             ->where('usuario_id', $request->user()->id)
             ->where('servicio_id', $servicio->id)
             ->where('status', 'completed')
-            ->whereNull('reserva_id')
+            ->whereDoesntHave('reserva')
             ->where('expires_at', '>', now())
             ->first();
 

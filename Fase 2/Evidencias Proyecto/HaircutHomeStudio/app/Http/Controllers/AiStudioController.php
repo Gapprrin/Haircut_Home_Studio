@@ -182,7 +182,7 @@ class AiStudioController extends Controller
     private function view(Request $request, ?AiGeneration $selected = null): View
     {
         $generations = AiGeneration::query()
-            ->with('servicio.categoria')
+            ->with(['servicio.categoria', 'reserva'])
             ->where('usuario_id', $request->user()->id)
             ->latest('id')
             ->limit(12)
@@ -193,7 +193,7 @@ class AiStudioController extends Controller
             ->with(['servicios' => fn ($query) => $query->where('activo', true)->orderBy('id')])
             ->orderBy('id')
             ->get();
-        $selected?->loadMissing('servicio.categoria');
+        $selected?->loadMissing(['servicio.categoria', 'reserva']);
 
         return view('ai.index', [
             'available' => $this->available(),
@@ -221,7 +221,7 @@ class AiStudioController extends Controller
     private function ensureImageAccess(Request $request, AiGeneration $generation): void
     {
         $isOwner = $generation->usuario_id === $request->user()->id;
-        $isAssignedStaff = $request->user()->esPeluquero() && $generation->reserva_id !== null;
+        $isAssignedStaff = $request->user()->esPeluquero() && $generation->reserva !== null;
         abort_unless($isOwner || $isAssignedStaff, 404);
     }
 }

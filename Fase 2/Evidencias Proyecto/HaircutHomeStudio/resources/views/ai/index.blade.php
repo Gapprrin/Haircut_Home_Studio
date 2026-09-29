@@ -59,13 +59,13 @@
                 </div>
                 <p class="ai-disclaimer">La simulación no garantiza un resultado idéntico. El profesional evaluará color base, textura y condición del cabello.</p>
                 <div class="actions ai-result-actions">
-                    @if(!$selected->reserva_id && auth()->user()->rol === 'cliente')
+                    @if(!$selected->reserva && auth()->user()->rol === 'cliente')
                         <a href="{{ route('reservas.create', array_filter([
                             'ai_generation' => $selected->id,
                             'cat' => $selected->servicio?->categoria?->slug,
                             'serv' => $selected->servicio_id,
                         ])) }}" class="btn btn-primary">Usar al reservar</a>
-                    @elseif($selected->reserva_id)
+                    @elseif($selected->reserva)
                         <span class="ai-linked">Vinculada a tu reserva</span>
                     @else
                         <span class="ai-linked">Resultado de prueba administrativa</span>
