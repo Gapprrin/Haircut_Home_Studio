@@ -1,0 +1,82 @@
+# Asignamos el nombre del contenedor de los contenedores.
+NAME: haircut_home_studio
+
+services:
+  hhs-app:
+    build:
+      context: ./HaircutHomeStudio
+      dockerfile: Dockerfile
+    container_name: haircut_app
+    depends_on:
+      hhs-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: "Haircut Home Studio"
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost
+      APP_KEY: base64:pCWMGwlggVW9w0U8fzD2w0PiCkc/Fc3a5NyXcFA1A4c=
+      DB_CONNECTION: mysql
+      DB_HOST: hhs-db
+      DB_PORT: 3306
+      DB_DATABASE: haircut_studio_laravel
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_ENABLED: 'true'
+      AI_PROVIDER: fake
+      AI_PROCESS_SYNC: 'true'
+    ports:
+      - "8000:80"
+    volumes:
+      - ./HaircutHomeStudio/app:/app/app
+      - ./HaircutHomeStudio/resources:/app/resources
+      - ./HaircutHomeStudio/routes:/app/routes
+      - ./HaircutHomeStudio/config:/app/config
+      - ./HaircutHomeStudio/database:/app/database
+      - ./HaircutHomeStudio/storage:/app/storage
+    networks:
+      - hhs-network
+
+  hhs-db:
+    image: mysql:8.0
+    container_name: hhs_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: haircut_studio_laravel
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - hhs-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: hhs_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - hhs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db_data:
+
+networks:
+  hhs-network:
+    driver: bridge
