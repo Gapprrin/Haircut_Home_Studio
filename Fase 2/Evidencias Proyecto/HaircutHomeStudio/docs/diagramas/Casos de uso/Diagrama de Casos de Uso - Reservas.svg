@@ -10,7 +10,7 @@
 <ellipse cx="970" cy="455" rx="145" ry="45" class="u"/><text x="970" y="461" class="n">Elegir fecha y hora</text>
 <ellipse cx="970" cy="580" rx="145" ry="45" class="u"/><text x="970" y="586" class="n">Elegir lugar</text>
 <ellipse cx="580" cy="555" rx="160" ry="48" class="u opt"/><text x="580" y="561" class="n">Adjuntar foto de referencia</text>
-<ellipse cx="580" cy="680" rx="160" ry="48" class="u opt"/><text x="580" y="676" class="n">Vincular simulación</text><text x="580" y="696" class="n">de IA existente</text>
+<ellipse cx="580" cy="680" rx="160" ry="48" class="u opt"/><text x="580" y="676" class="n">Adjuntar imagen</text><text x="580" y="696" class="n">simulada existente</text>
 <ellipse cx="580" cy="825" rx="160" ry="48" class="u main"/><text x="580" y="831" class="n">Consultar mis reservas</text>
 <ellipse cx="1000" cy="825" rx="145" ry="45" class="u opt"/><text x="1000" y="831" class="n">Cancelar reserva</text>
 <path d="M180 455L420 350" class="x"/><path d="M180 500L420 805" class="x"/>

@@ -62,8 +62,8 @@
   <text x="620" y="874" class="framehead">alt [horario disponible]</text>
   <rect x="635" y="892" width="720" height="92" fill="none" stroke="#94a3b8" stroke-width="1.1"/>
   <text x="646" y="914" class="framehead">opt [cliente seleccionó simulación de IA ya generada]</text>
-  <path d="M750 938 H1320" class="msg"/><text x="1035" y="928" class="label">10. Validar simulación: propietario, servicio, estado y vigencia</text>
-  <path d="M1320 960 H750" class="return"/><text x="1035" y="978" class="label">Simulación válida</text>
+  <path d="M750 938 H1320" class="msg"/><text x="1035" y="928" class="label">10. Validar propietario y vigencia; copiar imagen</text>
+  <path d="M1320 960 H750" class="return"/><text x="1035" y="978" class="label">Imagen privada preparada</text>
   <path d="M750 1025 H1320" class="msg"/><text x="1035" y="1015" class="label">11. Crear reserva (estado: pendiente)</text>
   <rect x="1313" y="1025" width="14" height="42" class="activation"/>
   <path d="M1320 1073 H750" class="return"/><text x="1035" y="1093" class="label">Reserva registrada</text>
@@ -71,5 +71,5 @@
   <path d="M450 1180 H150" class="return"/><text x="300" y="1200" class="label">Mostrar reserva pendiente</text>
 
   <rect x="100" y="1230" width="1400" height="48" fill="#f1f5f9" stroke="#94a3b8"/>
-  <text x="800" y="1260" class="note">La generación de IA es un caso de uso independiente; aquí solo se vincula una simulación previamente completada.</text>
+  <text x="800" y="1260" class="note">La generación de IA es independiente; la reserva conserva una copia privada de la imagen seleccionada.</text>
 </svg>

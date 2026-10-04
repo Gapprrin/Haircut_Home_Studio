@@ -164,7 +164,7 @@
         <section class="book-step" data-book-step="referencia" @if($initialStep !== 'referencia') hidden @endif>
             <div class="book-step-heading"><p class="home-kicker">Paso 3</p><h3>Imagen de referencia</h3><p>Opcional: agrega una inspiración para que el profesional entienda mejor el resultado que buscas.</p></div>
             @if($aiGeneration)
-                <div class="book-ai-reference"><img src="{{ route('ai.image', [$aiGeneration, 'output']) }}" alt="Simulación de {{ $aiGeneration->servicio?->nombre ?? 'estilo' }}"><div><strong>Simulación IA incluida</strong><p>{{ $aiGeneration->servicio?->nombre ?? 'Referencia de estilo' }}</p></div></div>
+                <div class="book-ai-reference"><img src="{{ route('ai.image', [$aiGeneration, 'output']) }}" alt="Simulación de {{ $aiGeneration->style_label ?? 'estilo' }}"><div><strong>Simulación IA incluida</strong><p>{{ $aiGeneration->style_label ?? 'Referencia de estilo' }}</p></div></div>
             @endif
             <div class="book-card"><div class="book-photo" id="book-photo">
                 <input class="book-photo-input" type="file" id="book-foto" name="foto" accept="image/jpeg,image/png,image/webp,image/gif">

@@ -25,7 +25,7 @@ class GenerateHairPreview implements ShouldQueue
 
     public function handle(AiImageProvider $provider, AiPromptService $prompts): void
     {
-        $generation = AiGeneration::query()->with('servicio.categoria')->find($this->generationId);
+        $generation = AiGeneration::query()->find($this->generationId);
         if (! $generation || $generation->status !== 'pending' || ! $generation->input_path) {
             return;
         }

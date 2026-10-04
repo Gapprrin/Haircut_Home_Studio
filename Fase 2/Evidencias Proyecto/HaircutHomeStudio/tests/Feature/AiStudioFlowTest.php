@@ -92,7 +92,8 @@ class AiStudioFlowTest extends TestCase
         $generation = AiGeneration::query()->firstOrFail();
         $response->assertRedirect(route('ai.show', $generation));
         $this->assertSame('completed', $generation->status);
-        $this->assertSame($servicio->id, $generation->servicio_id);
+        $this->assertSame($servicio->nombre, $generation->style_label);
+        $this->assertSame('color', $generation->style_category);
         Storage::disk('local')->assertExists($generation->input_path);
         Storage::disk('local')->assertExists($generation->output_path);
 
@@ -103,6 +104,29 @@ class AiStudioFlowTest extends TestCase
         $this->actingAs($otroCliente)
             ->get(route('ai.image', [$generation, 'output']))
             ->assertNotFound();
+    }
+
+    public function test_a_photo_smaller_than_512_pixels_is_accepted_with_only_a_quality_recommendation(): void
+    {
+        $cliente = User::factory()->create();
+        $categoria = Categoria::create(['nombre' => 'Cortes', 'slug' => 'corte']);
+        $servicio = $this->service($categoria, 'Corte de damas');
+
+        $this->actingAs($cliente)
+            ->get(route('ai.index'))
+            ->assertOk()
+            ->assertSee('También puedes usar una más pequeña.');
+
+        $response = $this->actingAs($cliente)->post(route('ai.store'), [
+            'photo' => new UploadedFile(public_path('img/favicon.png'), 'small.png', 'image/png', null, true),
+            'servicio_id' => $servicio->id,
+            'consent' => '1',
+        ]);
+
+        $generation = AiGeneration::query()->firstOrFail();
+        $response->assertRedirect(route('ai.show', $generation));
+        $this->assertSame('completed', $generation->status);
+        Storage::disk('local')->assertExists($generation->output_path);
     }
 
     public function test_identical_photo_and_service_reuse_the_result_without_consuming_quota(): void
@@ -128,7 +152,7 @@ class AiStudioFlowTest extends TestCase
         $this->assertSame(1, AiGeneration::query()->count());
     }
 
-    public function test_completed_preview_can_be_attached_to_a_reservation_and_seen_by_hairdresser(): void
+    public function test_completed_preview_is_copied_into_a_private_reservation_attachment(): void
     {
         Carbon::setTestNow('2026-09-10 09:00:00');
         Configuracion::create(['hora_inicio' => '10:30:00', 'hora_fin' => '19:30:00', 'dias_atencion' => '2,3,4,5,6']);
@@ -142,13 +166,15 @@ class AiStudioFlowTest extends TestCase
         ]);
         $cliente = User::factory()->create();
         $peluquero = User::factory()->create(['rol' => 'peluquero']);
+        $otroCliente = User::factory()->create();
         $image = file_get_contents(public_path('img/collage/03.jpg'));
         Storage::disk('local')->put('ai/input/attached.jpg', $image);
         Storage::disk('local')->put('ai/output/attached.jpg', $image);
         $generation = AiGeneration::create([
             'usuario_id' => $cliente->id,
-            'servicio_id' => $servicio->id,
-            'preset' => 'service:'.$servicio->id,
+            'style_label' => $servicio->nombre,
+            'style_category' => 'corte',
+            'preset' => 'style:test',
             'input_path' => 'ai/input/attached.jpg',
             'output_path' => 'ai/output/attached.jpg',
             'input_hash' => hash('sha256', $image),
@@ -166,14 +192,32 @@ class AiStudioFlowTest extends TestCase
             'ai_generation_id' => $generation->id,
         ])->assertRedirect(route('reservas.index'));
 
-        $this->assertSame($generation->id, \App\Models\Reserva::query()->value('ai_generation_id'));
-        $this->assertTrue($generation->expires_at->greaterThan('2026-09-12 11:30:00'));
+        $reserva = \App\Models\Reserva::query()->firstOrFail();
+        $this->assertNotNull($reserva->imagen_simulada);
+        $this->assertNotSame($generation->output_path, $reserva->imagen_simulada);
+        Storage::disk('local')->assertExists($reserva->imagen_simulada);
+        $this->assertSame($image, Storage::disk('local')->get($reserva->imagen_simulada));
+
+        $this->actingAs($peluquero)
+            ->get(route('reservas.simulated-image', $reserva))
+            ->assertOk();
+        $this->actingAs($otroCliente)
+            ->get(route('reservas.simulated-image', $reserva))
+            ->assertNotFound();
         $this->actingAs($peluquero)
             ->get(route('ai.image', [$generation, 'output']))
+            ->assertNotFound();
+
+        $generation->update(['expires_at' => now()->subMinute()]);
+        $this->artisan('ai:purge')->assertSuccessful();
+        Storage::disk('local')->assertMissing($generation->output_path ?? 'ai/output/attached.jpg');
+        Storage::disk('local')->assertExists($reserva->imagen_simulada);
+        $this->actingAs($cliente)
+            ->get(route('reservas.simulated-image', $reserva))
             ->assertOk();
     }
 
-    public function test_preview_cannot_be_attached_to_a_different_service(): void
+    public function test_preview_can_be_used_as_reference_for_another_service(): void
     {
         Carbon::setTestNow('2026-09-10 09:00:00');
         Configuracion::create(['hora_inicio' => '10:30:00', 'hora_fin' => '19:30:00', 'dias_atencion' => '2,3,4,5,6']);
@@ -186,8 +230,9 @@ class AiStudioFlowTest extends TestCase
         Storage::disk('local')->put('ai/output/mismatch.jpg', $image);
         $generation = AiGeneration::create([
             'usuario_id' => $cliente->id,
-            'servicio_id' => $simulatedService->id,
-            'preset' => 'service:'.$simulatedService->id,
+            'style_label' => $simulatedService->nombre,
+            'style_category' => 'corte',
+            'preset' => 'style:test',
             'input_path' => 'ai/input/mismatch.jpg',
             'output_path' => 'ai/output/mismatch.jpg',
             'input_hash' => hash('sha256', $image),
@@ -197,16 +242,50 @@ class AiStudioFlowTest extends TestCase
             'expires_at' => now()->addHours(72),
         ]);
 
-        $this->actingAs($cliente)->from(route('reservas.create'))->post(route('reservas.store'), [
+        $this->actingAs($cliente)->post(route('reservas.store'), [
             'servicio_id' => $differentService->id,
             'fecha' => '2026-09-11',
             'hora' => '10:30',
             'lugar' => 'salon',
             'ai_generation_id' => $generation->id,
-        ])->assertRedirect(route('reservas.create'))
-            ->assertSessionHasErrors('ai_generation_id');
+        ])->assertRedirect(route('reservas.index'));
 
-        $this->assertNull(\App\Models\Reserva::query()->value('ai_generation_id'));
+        $reserva = \App\Models\Reserva::query()->firstOrFail();
+        $this->assertSame($differentService->id, $reserva->servicio_id);
+        Storage::disk('local')->assertExists($reserva->imagen_simulada);
+    }
+
+    public function test_client_cannot_attach_another_users_preview(): void
+    {
+        Carbon::setTestNow('2026-09-10 09:00:00');
+        Configuracion::create(['hora_inicio' => '10:30:00', 'hora_fin' => '19:30:00', 'dias_atencion' => '2,3,4,5,6']);
+        $categoria = Categoria::create(['nombre' => 'Cortes', 'slug' => 'corte']);
+        $servicio = $this->service($categoria, 'Corte de damas');
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $image = file_get_contents(public_path('img/collage/03.jpg'));
+        Storage::disk('local')->put('ai/output/private.jpg', $image);
+        $generation = AiGeneration::create([
+            'usuario_id' => $owner->id,
+            'style_label' => 'Corte de damas',
+            'style_category' => 'corte',
+            'preset' => 'style:test',
+            'output_path' => 'ai/output/private.jpg',
+            'input_hash' => hash('sha256', $image),
+            'status' => 'completed',
+            'ip_hash' => hash('sha256', '127.0.0.1'),
+            'completed_at' => now(),
+            'expires_at' => now()->addHours(72),
+        ]);
+
+        $this->actingAs($other)->from(route('reservas.create'))->post(route('reservas.store'), [
+            'servicio_id' => $servicio->id,
+            'fecha' => '2026-09-11',
+            'hora' => '10:30',
+            'lugar' => 'salon',
+            'ai_generation_id' => $generation->id,
+        ])->assertRedirect(route('reservas.create'))->assertSessionHasErrors('ai_generation_id');
+
         $this->assertDatabaseCount('reservas', 0);
     }
 

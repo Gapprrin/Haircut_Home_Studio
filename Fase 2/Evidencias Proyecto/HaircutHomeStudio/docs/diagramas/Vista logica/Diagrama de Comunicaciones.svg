@@ -29,7 +29,7 @@
   <path d="M690 260 V395" class="arrow"/><rect x="708" y="304" width="250" height="25" class="labelBg"/><text x="833" y="323" class="message">1.2 Entregar disponibilidad</text>
   <path d="M735 395 V260" class="arrow"/><rect x="753" y="349" width="238" height="25" class="labelBg"/><text x="872" y="368" class="messageStrong">2.1 Verificar nuevamente</text>
 
-  <path d="M830 458 L1068 395" class="arrow"/><rect x="862" y="423" width="257" height="44" class="labelBg"/><text x="990" y="440" class="messageStrong">2.2 [opcional] Validar simulación</text><text x="990" y="460" class="message">previamente generada</text>
+  <path d="M830 458 L1068 395" class="arrow"/><rect x="862" y="423" width="257" height="44" class="labelBg"/><text x="990" y="440" class="messageStrong">2.2 [opcional] Validar simulación</text><text x="990" y="460" class="message">y copiar imagen a la reserva</text>
 
   <path d="M650 530 V697" class="arrow"/><rect x="378" y="603" width="252" height="25" class="labelBg"/><text x="504" y="622" class="messageStrong">2.3 Crear reserva pendiente</text>
   <path d="M710 697 V530" class="arrow"/><rect x="730" y="646" width="235" height="25" class="labelBg"/><text x="847" y="665" class="message">2.4 Confirmar registro</text>

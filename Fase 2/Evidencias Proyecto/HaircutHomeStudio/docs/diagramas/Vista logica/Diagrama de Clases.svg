@@ -38,7 +38,7 @@
     <text x="558" y="210" class="member">+ id: Entero</text><text x="558" y="235" class="member">+ fecha: Fecha</text>
     <text x="558" y="260" class="member">+ hora: Hora</text><text x="558" y="285" class="member">+ lugar: LugarAtencion</text>
     <text x="558" y="310" class="member">+ estado: EstadoReserva</text><text x="558" y="335" class="member">+ foto: Ruta [0..1]</text>
-    <text x="558" y="360" class="member">+ creadoEn: FechaHora</text>
+    <text x="558" y="360" class="member">+ imagenSimulada: Ruta [0..1]</text>
     <line x1="540" y1="383" x2="930" y2="383" class="assoc"/>
     <text x="558" y="415" class="method">+ puedeCancelar(): Booleano</text>
   </g>
@@ -71,8 +71,8 @@
     <rect x="385" y="650" width="430" height="66" class="classHead aiHead"/>
     <text x="600" y="678" class="stereo">«entidad»</text><text x="600" y="703" class="className">GeneraciónIA</text>
     <line x1="385" y1="716" x2="815" y2="716" class="assoc"/>
-    <text x="403" y="745" class="member">+ id: Entero</text><text x="403" y="770" class="member">+ preset: Texto</text>
-    <text x="403" y="795" class="member">- rutaEntrada: Ruta [0..1]</text><text x="403" y="820" class="member">- rutaResultado: Ruta [0..1]</text>
+    <text x="403" y="745" class="member">+ id: Entero</text><text x="403" y="770" class="member">+ estilo: Texto</text>
+    <text x="403" y="795" class="member">+ categoríaEstilo: Texto</text><text x="403" y="820" class="member">- rutaResultado: Ruta [0..1]</text>
     <text x="403" y="845" class="member">+ estado: EstadoGeneración</text><text x="403" y="870" class="member">+ completadaEn: FechaHora [0..1]</text>
     <text x="403" y="895" class="member">+ expiraEn: FechaHora</text><text x="403" y="920" class="member">+ códigoError: Texto [0..1]</text>
     <line x1="385" y1="943" x2="815" y2="943" class="assoc"/>
@@ -126,12 +126,10 @@
   <path d="M1435 280 H1550" class="assoc"/><text x="1447" y="271" class="mult">0..*</text><text x="1525" y="271" class="mult">1</text><text x="1492" y="305" class="role">clasifica</text>
 
   <path d="M225 470 V570 H480 V650" class="assoc"/><text x="238" y="492" class="mult">1</text><text x="452" y="640" class="mult">0..*</text><text x="336" y="558" class="role">solicita</text>
-  <path d="M735 495 V650" class="assoc"/><text x="748" y="522" class="mult">0..1</text><text x="748" y="640" class="mult">0..1</text><text x="685" y="580" class="role">usa</text>
-  <path d="M1257 475 V565 H720 V650" class="assoc"/><text x="1270" y="505" class="mult">1</text><text x="732" y="640" class="mult">0..*</text><text x="980" y="553" class="role">simula</text>
 
   <path d="M1692 410 V620" class="assoc"/><text x="1705" y="438" class="mult">1</text><text x="1705" y="610" class="mult">0..*</text><text x="1755" y="520" class="role">agrupa</text>
   <path d="M1130 965 V1050 H1050 V1100" class="assoc"/><text x="1143" y="992" class="mult">1</text><text x="1065" y="1090" class="mult">0..*</text><text x="1040" y="1040" class="role">bloquea</text>
   <path d="M1160 965 V1030 H1405 V1100" class="assoc"/><text x="1173" y="992" class="mult">1</text><text x="1418" y="1090" class="mult">0..*</text><text x="1290" y="1020" class="role">habilita</text>
 
-  <text x="950" y="1328" class="note">Se muestran las clases del dominio y sus relaciones; las clases internas de Laravel se omiten por no aportar a la comprensión lógica del negocio.</text>
+  <text x="950" y="1328" class="note">La reserva conserva su propia imagen de referencia; la simulación temporal pertenece al usuario y no tiene relación directa con la reserva ni el servicio.</text>
 </svg>

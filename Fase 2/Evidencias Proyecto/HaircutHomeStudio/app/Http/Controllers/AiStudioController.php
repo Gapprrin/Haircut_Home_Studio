@@ -52,7 +52,7 @@ class AiStudioController extends Controller
                 'image',
                 'mimes:jpg,jpeg,png',
                 'max:6144',
-                'dimensions:min_width=512,min_height=512,max_width=4096,max_height=4096',
+                'dimensions:max_width=4096,max_height=4096',
             ],
             'servicio_id' => ['required', 'integer', Rule::exists('servicios', 'id')->where('activo', true)],
             'consent' => ['accepted'],
@@ -61,7 +61,7 @@ class AiStudioController extends Controller
             'photo.image' => 'El archivo debe ser una imagen válida.',
             'photo.mimes' => 'La fotografía debe estar en formato JPG o PNG.',
             'photo.max' => 'La fotografía no puede superar 6 MB.',
-            'photo.dimensions' => 'La fotografía debe medir entre 512 y 4096 píxeles por lado.',
+            'photo.dimensions' => 'La fotografía no puede superar 4096 píxeles por lado.',
             'servicio_id.required' => 'Selecciona un servicio.',
             'servicio_id.exists' => 'El servicio seleccionado no está disponible.',
             'consent.accepted' => 'Debes aceptar el procesamiento temporal de la fotografía.',
@@ -80,9 +80,13 @@ class AiStudioController extends Controller
         }
 
         $sanitized = $this->sanitizer->sanitize($request->file('photo')->get());
+        $styleCategory = $servicio->categoria->slug;
+        $styleLabel = $servicio->nombre;
+        $styleKey = 'style:'.substr(hash('sha256', $styleCategory.'|'.$styleLabel), 0, 32);
         $existing = AiGeneration::query()
             ->where('usuario_id', $request->user()->id)
-            ->where('servicio_id', $servicio->id)
+            ->where('style_category', $styleCategory)
+            ->where('style_label', $styleLabel)
             ->where('input_hash', $sanitized['hash'])
             ->where('status', 'completed')
             ->where('expires_at', '>', now())
@@ -96,7 +100,7 @@ class AiStudioController extends Controller
 
         $inputPath = null;
         try {
-            $generation = DB::transaction(function () use ($request, $servicio, $sanitized, &$inputPath): AiGeneration {
+            $generation = DB::transaction(function () use ($request, $styleCategory, $styleLabel, $styleKey, $sanitized, &$inputPath): AiGeneration {
                 $usuario = User::query()->lockForUpdate()->findOrFail($request->user()->id);
                 $quota = $this->quota->status($usuario);
                 if (! $quota['allowed']) {
@@ -110,8 +114,9 @@ class AiStudioController extends Controller
 
                 return AiGeneration::create([
                     'usuario_id' => $usuario->id,
-                    'servicio_id' => $servicio->id,
-                    'preset' => 'service:'.$servicio->id,
+                    'style_category' => $styleCategory,
+                    'style_label' => $styleLabel,
+                    'preset' => $styleKey,
                     'input_path' => $inputPath,
                     'input_hash' => $sanitized['hash'],
                     'status' => 'pending',
@@ -182,7 +187,6 @@ class AiStudioController extends Controller
     private function view(Request $request, ?AiGeneration $selected = null): View
     {
         $generations = AiGeneration::query()
-            ->with(['servicio.categoria', 'reserva'])
             ->where('usuario_id', $request->user()->id)
             ->latest('id')
             ->limit(12)
@@ -193,8 +197,6 @@ class AiStudioController extends Controller
             ->with(['servicios' => fn ($query) => $query->where('activo', true)->orderBy('id')])
             ->orderBy('id')
             ->get();
-        $selected?->loadMissing(['servicio.categoria', 'reserva']);
-
         return view('ai.index', [
             'available' => $this->available(),
             'demoMode' => config('ai.provider') === 'fake',
@@ -221,7 +223,6 @@ class AiStudioController extends Controller
     private function ensureImageAccess(Request $request, AiGeneration $generation): void
     {
         $isOwner = $generation->usuario_id === $request->user()->id;
-        $isAssignedStaff = $request->user()->esPeluquero() && $generation->reserva !== null;
-        abort_unless($isOwner || $isAssignedStaff, 404);
+        abort_unless($isOwner, 404);
     }
 }

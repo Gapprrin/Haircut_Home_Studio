@@ -12,11 +12,14 @@ use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class ReservationController extends Controller
 {
@@ -90,7 +93,7 @@ class ReservationController extends Controller
                 $estados[$dia] = $this->availability->estadoDia($fechaDia, $servicio);
             }
         }
-        $aiGeneration = $this->selectedAiGeneration($request, $servicio);
+        $aiGeneration = $this->selectedAiGeneration($request);
 
         return view('reservas.create', [
             'categorias' => $categorias,
@@ -127,9 +130,10 @@ class ReservationController extends Controller
 
         $servicio = Servicio::query()->with('categoria')->findOrFail($datos['servicio_id']);
         $foto = null;
+        $imagenSimulada = null;
 
         try {
-            DB::transaction(function () use ($request, $datos, $servicio, &$foto): void {
+            DB::transaction(function () use ($request, $datos, $servicio, &$foto, &$imagenSimulada): void {
                 Reserva::query()->whereDate('fecha', $datos['fecha'])->lockForUpdate()->get();
                 if (! in_array($datos['hora'], $this->availability->slotsDisponibles($datos['fecha'], $servicio), true)) {
                     throw new DomainException('La hora seleccionada ya no está disponible.');
@@ -140,9 +144,7 @@ class ReservationController extends Controller
                     $aiGeneration = AiGeneration::query()
                         ->whereKey($datos['ai_generation_id'])
                         ->where('usuario_id', $request->user()->id)
-                        ->where('servicio_id', $servicio->id)
                         ->where('status', 'completed')
-                        ->whereDoesntHave('reserva')
                         ->where('expires_at', '>', now())
                         ->lockForUpdate()
                         ->first();
@@ -153,36 +155,35 @@ class ReservationController extends Controller
                     }
                 }
 
-                $appointmentExpiry = null;
                 if ($aiGeneration) {
-                    $appointmentExpiry = CarbonImmutable::createFromFormat(
-                        'Y-m-d H:i',
-                        $datos['fecha'].' '.$datos['hora'],
-                    )->addMinutes(max(60, $servicio->duracion_min))->addDay();
+                    $extension = pathinfo($aiGeneration->output_path, PATHINFO_EXTENSION);
+                    $imagenSimulada = 'reservas/simulaciones/'.Str::uuid().'.'.($extension ?: 'jpg');
+                    if (! Storage::disk('local')->copy($aiGeneration->output_path, $imagenSimulada)) {
+                        throw ValidationException::withMessages([
+                            'ai_generation_id' => 'No fue posible adjuntar la simulación a la reserva.',
+                        ]);
+                    }
                 }
 
                 $foto = $request->file('foto')?->store('fotos', 'public');
-                $reserva = Reserva::create([
+                Reserva::create([
                     'usuario_id' => $request->user()->id,
                     'servicio_id' => $servicio->id,
-                    'ai_generation_id' => $aiGeneration?->id,
                     'fecha' => $datos['fecha'],
                     'hora' => $datos['hora'],
                     'foto' => $foto,
+                    'imagen_simulada' => $imagenSimulada,
                     'lugar' => $datos['lugar'],
                     'estado' => 'pendiente',
                 ]);
-
-                if ($aiGeneration && $appointmentExpiry) {
-                    $aiGeneration->update(['expires_at' => $appointmentExpiry->max($aiGeneration->expires_at)]);
-                }
             });
         } catch (DomainException) {
-            if ($foto) {
-                Storage::disk('public')->delete($foto);
-            }
+            $this->removeUncommittedImages($foto, $imagenSimulada);
 
             return back()->withInput()->with('error', 'Esa hora ya no está disponible. Elige otra.');
+        } catch (Throwable $exception) {
+            $this->removeUncommittedImages($foto, $imagenSimulada);
+            throw $exception;
         }
 
         return redirect()->route('reservas.index')->with('success', 'Reserva enviada. El pago es presencial.');
@@ -201,6 +202,23 @@ class ReservationController extends Controller
         $reserva->update(['estado' => 'cancelada']);
 
         return back()->with('success', 'Reserva cancelada. El cupo quedó libre.');
+    }
+
+    public function simulatedImage(Request $request, Reserva $reserva): Response
+    {
+        abort_unless($reserva->usuario_id === $request->user()->id || $request->user()->esPeluquero(), 404);
+        abort_unless($reserva->imagen_simulada && Storage::disk('local')->exists($reserva->imagen_simulada), 404);
+
+        $bytes = Storage::disk('local')->get($reserva->imagen_simulada);
+        $mimeType = @getimagesizefromstring($bytes)['mime'] ?? 'application/octet-stream';
+
+        return response($bytes, 200, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Content-Disposition' => 'inline',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'",
+        ]);
     }
 
     private function fechaSeleccionada(string $valor, int $anio, int $mes): ?CarbonImmutable
@@ -222,7 +240,7 @@ class ReservationController extends Controller
         return $fecha;
     }
 
-    private function selectedAiGeneration(Request $request, Servicio $servicio): ?AiGeneration
+    private function selectedAiGeneration(Request $request): ?AiGeneration
     {
         if ($request->integer('ai_generation') < 1) {
             return null;
@@ -231,14 +249,22 @@ class ReservationController extends Controller
         $generation = AiGeneration::query()
             ->whereKey($request->integer('ai_generation'))
             ->where('usuario_id', $request->user()->id)
-            ->where('servicio_id', $servicio->id)
             ->where('status', 'completed')
-            ->whereDoesntHave('reserva')
             ->where('expires_at', '>', now())
             ->first();
 
         return $generation?->output_path && Storage::disk('local')->exists($generation->output_path)
             ? $generation
             : null;
+    }
+
+    private function removeUncommittedImages(?string $foto, ?string $imagenSimulada): void
+    {
+        if ($foto) {
+            Storage::disk('public')->delete($foto);
+        }
+        if ($imagenSimulada) {
+            Storage::disk('local')->delete($imagenSimulada);
+        }
     }
 }
