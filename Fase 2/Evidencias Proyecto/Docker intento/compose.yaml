@@ -1,5 +1,5 @@
 # Asignamos el nombre del contenedor de los contenedores.
-NAME: haircut_home_studio
+name: haircut_home_studio
 
 services:
   hhs-app:
