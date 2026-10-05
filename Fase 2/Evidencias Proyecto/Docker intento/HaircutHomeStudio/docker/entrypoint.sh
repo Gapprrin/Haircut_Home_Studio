@@ -17,6 +17,16 @@ echo "✓ MySQL is ready"
 echo "Running migrations..."
 php /app/artisan migrate --force
 
+echo "Checking initial data..."
+usuarios_count=$(php -r 'require "/app/vendor/autoload.php"; $app = require "/app/bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo Illuminate\Support\Facades\DB::table("usuarios")->count();')
+
+if [ "$usuarios_count" -eq 0 ]; then
+  echo "Database is empty; loading seed data..."
+  php /app/artisan db:seed --force
+else
+  echo "Database already has users; skipping seed data."
+fi
+
 echo "Creating storage link..."
 php /app/artisan storage:link --force
 

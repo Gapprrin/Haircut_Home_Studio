@@ -44,7 +44,7 @@ services:
       - hhs-network
 
   hhs-db:
-    image: mysql:8.0
+    image: mysql:8.2
     container_name: hhs_db
     environment:
       MYSQL_ROOT_PASSWORD: root_password

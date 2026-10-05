@@ -11,6 +11,8 @@
         </div>
     </section>
 
+    <section>HOLA GENTE QUE PASA</section>
+
     <section class="home-gallery" aria-label="Trabajos del estudio">
         <div class="home-mosaic">
             @foreach($collage as $index => $foto)
