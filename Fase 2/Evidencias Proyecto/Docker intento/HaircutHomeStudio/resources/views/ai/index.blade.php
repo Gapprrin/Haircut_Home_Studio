@@ -15,10 +15,10 @@
         'provider_quota' => 'Gemini alcanzó temporalmente su cuota. Intenta más tarde.',
         'connection_error' => 'No fue posible conectar con Gemini. Intenta más tarde.',
     ];
-    $generationLabel = fn ($generation) => $generation->servicio?->nombre
+    $generationLabel = fn ($generation) => $generation->style_label
         ?? ($presets[$generation->preset]['label'] ?? 'Simulación');
     $media = app(\App\Services\MediaService::class);
-    $previousServiceId = (int) old('servicio_id', $selected?->servicio_id ?? 0);
+    $previousServiceId = (int) old('servicio_id', 0);
     $activeServiceCategory = $serviceCategories
         ->first(fn ($category) => $category->servicios->contains('id', $previousServiceId))?->slug
         ?? $serviceCategories->first()?->slug;
@@ -59,14 +59,10 @@
                 </div>
                 <p class="ai-disclaimer">La simulación no garantiza un resultado idéntico. El profesional evaluará color base, textura y condición del cabello.</p>
                 <div class="actions ai-result-actions">
-                    @if(!$selected->reserva && auth()->user()->rol === 'cliente')
+                    @if(auth()->user()->rol === 'cliente')
                         <a href="{{ route('reservas.create', array_filter([
                             'ai_generation' => $selected->id,
-                            'cat' => $selected->servicio?->categoria?->slug,
-                            'serv' => $selected->servicio_id,
                         ])) }}" class="btn btn-primary">Usar al reservar</a>
-                    @elseif($selected->reserva)
-                        <span class="ai-linked">Vinculada a tu reserva</span>
                     @else
                         <span class="ai-linked">Resultado de prueba administrativa</span>
                     @endif
@@ -98,6 +94,7 @@
             </label>
             <div class="ai-photo-preview" data-ai-photo-preview hidden><img alt="Vista previa de la fotografía"></div>
             <label for="ai-photo" class="ai-photo-change" data-ai-photo-change hidden>Cambiar fotografía</label>
+            <p class="hint">Para mejores resultados, recomendamos una foto de al menos 512 × 512 píxeles. También puedes usar una más pequeña.</p>
             <p class="ai-photo-error" data-ai-photo-error hidden></p>
         </section>
 

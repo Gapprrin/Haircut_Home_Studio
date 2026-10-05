@@ -45,6 +45,10 @@ Route::get('/simulador/{generation}/imagen/{kind}', [AiStudioController::class, 
     ->whereIn('kind', ['input', 'output'])
     ->name('ai.image');
 
+Route::get('/reservas/{reserva}/imagen-simulada', [ReservationController::class, 'simulatedImage'])
+    ->middleware('auth')
+    ->name('reservas.simulated-image');
+
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/servicios', [ServiceController::class, 'index'])->name('servicios.index');
     Route::post('/categorias', [ServiceController::class, 'storeCategory'])->name('categorias.store');

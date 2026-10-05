@@ -12,7 +12,7 @@
 <ellipse cx="940" cy="555" rx="145" ry="44" class="u"/><text x="940" y="561" class="n">Validar cuota de uso</text>
 <ellipse cx="940" cy="675" rx="145" ry="44" class="u"/><text x="940" y="681" class="n">Procesar imagen</text>
 <ellipse cx="560" cy="555" rx="165" ry="48" class="u main"/><text x="560" y="561" class="n">Consultar historial</text>
-<ellipse cx="560" cy="720" rx="165" ry="48" class="u opt"/><text x="560" y="716" class="n">Reservar servicio</text><text x="560" y="736" class="n">simulado</text>
+<ellipse cx="560" cy="720" rx="165" ry="48" class="u opt"/><text x="560" y="716" class="n">Usar imagen</text><text x="560" y="736" class="n">al reservar</text>
 <ellipse cx="940" cy="850" rx="145" ry="44" class="u opt"/><text x="940" y="856" class="n">Eliminar imágenes</text>
 <path d="M170 445L395 320" class="x"/><path d="M170 490L395 545" class="x"/><path d="M1085 675L1365 575" class="x"/>
 <path d="M710 280L805 215" class="d"/><text x="755" y="225" class="t2">«include»</text><path d="M725 300H795" class="d"/><text x="760" y="282" class="t2">«include»</text><path d="M700 330L815 415" class="d"/><text x="755" y="395" class="t2">«include»</text><path d="M665 345L835 530" class="d"/><text x="755" y="485" class="t2">«include»</text><path d="M650 348L850 650" class="d"/><text x="730" y="545" class="t2">«include»</text>

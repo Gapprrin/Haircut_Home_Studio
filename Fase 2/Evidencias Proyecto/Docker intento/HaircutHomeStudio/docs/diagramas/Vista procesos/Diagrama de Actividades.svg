@@ -53,7 +53,7 @@
   <path d="M885 820 L955 865 L885 910 L815 865 Z" class="decision"/>
   <text x="885" y="858" class="activityText">¿Adjunta</text><text x="885" y="878" class="activityText">simulación IA?</text>
   <path d="M955 865 H1080 V940 H1020" class="flow"/><text x="974" y="851" class="guard">[Sí]</text>
-  <rect x="720" y="925" width="300" height="72" rx="18" class="activity system"/><text x="870" y="954" class="activityText">Validar simulación existente</text><text x="870" y="976" class="small">propietario, servicio y vigencia</text>
+  <rect x="720" y="925" width="300" height="72" rx="18" class="activity system"/><text x="870" y="954" class="activityText">Validar y copiar simulación</text><text x="870" y="976" class="small">propietario, estado y vigencia</text>
   <path d="M815 865 H690 V1030 H720" class="flow"/><text x="728" y="851" class="guard">[No]</text>
   <path d="M870 997 V1025" class="flow"/>
 
@@ -73,5 +73,5 @@
   <path d="M295 1317 V1350" class="flow"/>
   <circle cx="295" cy="1372" r="19" class="endOuter"/><circle cx="295" cy="1372" r="11" class="endInner"/>
 
-  <text x="900" y="1462" class="note">La generación completa de imágenes con Gemini es un proceso independiente; en esta actividad solo se valida una simulación previamente completada.</text>
+  <text x="900" y="1462" class="note">La generación con Gemini es independiente; la reserva guarda una copia privada de la imagen seleccionada.</text>
 </svg>

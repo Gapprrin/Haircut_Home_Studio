@@ -12,7 +12,7 @@
             @foreach($reservas as $reserva)
                 <tr>
                     <td data-label="Fecha / Hora">{{ $reserva->fecha->format('d/m/Y') }} · {{ substr($reserva->hora, 0, 5) }}</td>
-                    <td data-label="Servicio">{{ $reserva->servicio->nombre }}</td>
+                    <td data-label="Servicio">{{ $reserva->servicio->nombre }}@if($reserva->imagen_simulada)<br><a href="{{ route('reservas.simulated-image', $reserva) }}" target="_blank">Ver simulación adjunta</a>@endif</td>
                     <td data-label="Lugar">{{ \App\Support\Format::lugar($reserva->lugar) }}</td>
                     <td data-label="Estado"><span class="status {{ \App\Support\Format::estadoClase($reserva->estado) }}">{{ \App\Support\Format::estado($reserva->estado) }}</span></td>
                     <td data-label="Acción">

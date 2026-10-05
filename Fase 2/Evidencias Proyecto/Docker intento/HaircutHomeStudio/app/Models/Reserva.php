@@ -13,7 +13,9 @@ class Reserva extends Model
 
     protected $table = 'reservas';
 
-    protected $fillable = ['usuario_id', 'servicio_id', 'ai_generation_id', 'fecha', 'hora', 'foto', 'lugar', 'estado'];
+    protected $fillable = ['usuario_id', 'servicio_id', 'fecha', 'hora', 'foto', 'imagen_simulada', 'lugar', 'estado'];
+
+    protected $hidden = ['imagen_simulada'];
 
     protected function casts(): array
     {
@@ -31,11 +33,6 @@ class Reserva extends Model
     public function servicio(): BelongsTo
     {
         return $this->belongsTo(Servicio::class, 'servicio_id');
-    }
-
-    public function generacionIa(): BelongsTo
-    {
-        return $this->belongsTo(AiGeneration::class, 'ai_generation_id');
     }
 
     public function puedeCancelar(): bool

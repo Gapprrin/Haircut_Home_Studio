@@ -11,8 +11,8 @@ class AiPromptService
 {
     public function forGeneration(AiGeneration $generation): string
     {
-        if ($generation->servicio) {
-            return $this->forService($generation->servicio);
+        if ($generation->style_label && $generation->style_category) {
+            return $this->forStyle($generation->style_label, $generation->style_category);
         }
 
         return $this->forPreset($generation->preset);
@@ -21,14 +21,18 @@ class AiPromptService
     public function forService(Servicio $servicio): string
     {
         $servicio->loadMissing('categoria');
-        $category = (string) $servicio->categoria?->slug;
+        return $this->forStyle($servicio->nombre, (string) $servicio->categoria?->slug);
+    }
+
+    public function forStyle(string $name, string $category): string
+    {
         if (! in_array($category, ['corte', 'color'], true)) {
             throw new InvalidArgumentException('El servicio no está disponible para simulación.');
         }
 
-        $serviceName = Str::lower(Str::ascii(trim($servicio->nombre)));
+        $serviceName = Str::lower(Str::ascii(trim($name)));
         $definitions = (array) config("ai.service_prompts.{$category}");
-        $requestedChange = $definitions[$serviceName] ?? $this->fallbackFor($servicio, $category);
+        $requestedChange = $definitions[$serviceName] ?? $this->fallbackFor($name, $category);
 
         return $this->build($requestedChange);
     }
@@ -55,9 +59,9 @@ class AiPromptService
         ]);
     }
 
-    private function fallbackFor(Servicio $servicio, string $category): string
+    private function fallbackFor(string $name, string $category): string
     {
-        $safeName = preg_replace('/[^\pL\pN +\-]/u', '', $servicio->nombre) ?: 'servicio de peluquería';
+        $safeName = preg_replace('/[^\pL\pN +\-]/u', '', $name) ?: 'servicio de peluquería';
 
         return $category === 'corte'
             ? "Create a realistic professional salon haircut corresponding to the catalog service '{$safeName}', preserving the current hair color."

@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AiGeneration extends Model
 {
     protected $fillable = [
         'usuario_id',
-        'servicio_id',
+        'style_label',
+        'style_category',
         'preset',
         'input_path',
         'output_path',
@@ -42,16 +42,6 @@ class AiGeneration extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');
-    }
-
-    public function reserva(): HasOne
-    {
-        return $this->hasOne(Reserva::class, 'ai_generation_id');
-    }
-
-    public function servicio(): BelongsTo
-    {
-        return $this->belongsTo(Servicio::class, 'servicio_id');
     }
 
     public function estaLista(): bool
