@@ -15,6 +15,7 @@ FROM php:8.2-fpm-alpine
 RUN apk add --no-cache \
     nginx \
     mysql-client \
+    tzdata \
     curl \
     git \
     unzip \

@@ -17,6 +17,7 @@ services:
       APP_ENV: local
       APP_DEBUG: 'true'
       APP_URL: http://localhost
+      TZ: America/Santiago
       APP_KEY: base64:pCWMGwlggVW9w0U8fzD2w0PiCkc/Fc3a5NyXcFA1A4c=
       DB_CONNECTION: mysql
       DB_HOST: hhs-db
@@ -47,6 +48,7 @@ services:
     image: mysql:8.2
     container_name: hhs_db
     environment:
+      TZ: America/Santiago
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: haircut_studio_laravel
       MYSQL_USER: user
