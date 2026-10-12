@@ -9,8 +9,6 @@
         </div>
     </section>
 
-    <section>HOLA GENTE QUE PASA</section>
-
     <section class="home-gallery" aria-label="Trabajos del estudio">
         <div class="home-mosaic">
             <?php $__currentLoopData = $collage; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $foto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>

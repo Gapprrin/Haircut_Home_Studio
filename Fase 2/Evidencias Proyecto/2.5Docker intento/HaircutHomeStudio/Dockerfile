@@ -55,11 +55,15 @@ RUN mkdir -p \
     storage/app/public/fotos \
     bootstrap/cache \
     /var/lib/nginx/logs \
-    /var/lib/nginx/tmp
+    /var/lib/nginx/tmp/client_body \
+    /var/lib/nginx/tmp/proxy \
+    /var/lib/nginx/tmp/fastcgi
 
-# Set permissions
-RUN chown -R www-data:www-data /app /var/lib/nginx && \
-    chmod -R 755 storage bootstrap/cache
+# Nginx corre como usuario nginx y necesita escribir el archivo subido.
+# PHP-FPM sigue usando www-data sobre el código de la aplicación.
+RUN chown -R www-data:www-data /app && \
+    chown -R nginx:nginx /var/lib/nginx && \
+    chmod -R 755 /var/lib/nginx storage bootstrap/cache
 
 # Copy config files
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf

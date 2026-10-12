@@ -1,0 +1,11 @@
+*.md
+.git
+.gitignore
+.env.example
+docs/
+tests/
+phpunit.xml
+node_modules/
+.DS_Store
+.env
+.env.*
