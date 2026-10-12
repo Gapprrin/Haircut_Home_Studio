@@ -45,6 +45,7 @@
                 <div class="field"><label for="serv-desc">Descripción</label><input type="text" id="serv-desc" name="descripcion" placeholder="Opcional"></div>
                 <div class="field"><label for="serv-dur">Duración (minutos)</label><input type="number" id="serv-dur" name="duracion_min" value="60" min="60" step="30"></div>
                 <div class="field"><label for="serv-precio">Precio (CLP)</label><input type="number" id="serv-precio" name="precio" value="15000" min="0"></div>
+                <div class="field"><label><input type="checkbox" name="precio_desde" value="1"> Precio desde (variable según cabello y técnica)</label></div>
                 <div class="field"><label for="serv-img">Imagen / icono</label><input type="file" id="serv-img" name="imagen" accept="image/*"></div>
             </div>
             <div class="actions"><button type="submit" class="btn btn-primary">Guardar servicio</button><button type="button" class="btn btn-secondary" data-panel-close="service-create">Cancelar</button></div>
@@ -69,7 +70,7 @@
                         <div class="catalog-row-product"><div class="catalog-thumb">@if($imageUrl)<img src="{{ $imageUrl }}" alt="">@else<span>Sin foto</span>@endif</div><div><strong class="catalog-row-name">{{ $servicio->nombre }}</strong>@if($servicio->descripcion)<p class="catalog-row-desc">{{ $servicio->descripcion }}</p>@endif</div></div>
                         <div class="catalog-row-cat" data-label="Categoría">{{ $servicio->categoria->nombre }}</div>
                         <div class="catalog-row-dur" data-label="Duración">{{ \App\Support\Format::duracion($servicio->duracion_min) }}</div>
-                        <div class="catalog-row-price" data-label="Precio">{{ \App\Support\Format::precio($servicio->precio) }}</div>
+                        <div class="catalog-row-price" data-label="Precio">{{ $servicio->precioFormateado() }}</div>
                         <div class="catalog-row-status" data-label="Estado"><span class="catalog-badge {{ $servicio->activo ? 'is-on' : 'is-off' }}">{{ $servicio->activo ? 'Visible' : 'Oculto' }}</span></div>
                         <div class="catalog-row-actions">
                             <button type="button" class="catalog-icon-btn is-edit" data-panel-toggle="service-edit-{{ $servicio->id }}" aria-expanded="false" title="Editar">✎ <span>Editar</span></button>
@@ -85,6 +86,7 @@
                                 <div class="field"><label>Descripción</label><input type="text" name="descripcion" value="{{ $servicio->descripcion }}"></div>
                                 <div class="field"><label>Duración (min)</label><input type="number" name="duracion_min" value="{{ $servicio->duracion_min }}" min="60" step="30"></div>
                                 <div class="field"><label>Precio (CLP)</label><input type="number" name="precio" value="{{ (int) $servicio->precio }}" min="0"></div>
+                                <div class="field"><label><input type="checkbox" name="precio_desde" value="1" @checked($servicio->precio_desde)> Precio desde (variable según cabello y técnica)</label></div>
                                 <div class="field"><label>Imagen / icono</label><input type="file" name="imagen" accept="image/*"></div>
                                 <div class="field catalog-field-check"><label><input type="checkbox" name="activo" @checked($servicio->activo)> Visible al reservar</label></div>
                             </div>

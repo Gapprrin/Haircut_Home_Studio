@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AiGeneration;
 use App\Models\Categoria;
 use App\Models\Configuracion;
+use App\Models\Reserva;
 use App\Models\Servicio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,6 +153,39 @@ class AiStudioFlowTest extends TestCase
         $this->assertSame(1, AiGeneration::query()->count());
     }
 
+    public function test_changed_prompt_does_not_reuse_an_old_result_but_keeps_its_history(): void
+    {
+        $client = User::factory()->create(['ai_sin_limite' => true]);
+        $category = Categoria::create(['nombre' => 'Color', 'slug' => 'color']);
+        $service = $this->service($category, 'Colores fantasía');
+        $this->actingAs($client);
+        $this->post(route('ai.store'), [
+            'photo' => $this->portrait(),
+            'servicio_id' => $service->id,
+            'consent' => '1',
+        ])->assertSessionHasNoErrors();
+        $old = AiGeneration::firstOrFail();
+        $old->update(['preset' => 'style:'.substr(hash('sha256', 'color|Colores fantasía'), 0, 32)]);
+        $this->post(route('ai.store'), [
+            'photo' => $this->portrait(),
+            'servicio_id' => $service->id,
+            'consent' => '1',
+        ])->assertSessionHasNoErrors();
+        $current = AiGeneration::latest('id')->firstOrFail();
+        $this->assertNotSame($old->id, $current->id);
+        $this->assertSame('completed', $current->status);
+        Storage::disk('local')->assertExists($old->output_path);
+
+        config()->set('ai.service_prompts.color.colores fantasia', 'Preview blue fantasy color on existing hair.');
+        $this->post(route('ai.store'), [
+            'photo' => $this->portrait(),
+            'servicio_id' => $service->id,
+            'consent' => '1',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(3, AiGeneration::count());
+        $this->assertNotSame($current->preset, AiGeneration::latest('id')->firstOrFail()->preset);
+    }
+
     public function test_completed_preview_is_copied_into_a_private_reservation_attachment(): void
     {
         Carbon::setTestNow('2026-09-10 09:00:00');
@@ -192,7 +226,7 @@ class AiStudioFlowTest extends TestCase
             'ai_generation_id' => $generation->id,
         ])->assertRedirect(route('reservas.index'));
 
-        $reserva = \App\Models\Reserva::query()->firstOrFail();
+        $reserva = Reserva::query()->firstOrFail();
         $this->assertNotNull($reserva->imagen_simulada);
         $this->assertNotSame($generation->output_path, $reserva->imagen_simulada);
         Storage::disk('local')->assertExists($reserva->imagen_simulada);
@@ -250,7 +284,7 @@ class AiStudioFlowTest extends TestCase
             'ai_generation_id' => $generation->id,
         ])->assertRedirect(route('reservas.index'));
 
-        $reserva = \App\Models\Reserva::query()->firstOrFail();
+        $reserva = Reserva::query()->firstOrFail();
         $this->assertSame($differentService->id, $reserva->servicio_id);
         Storage::disk('local')->assertExists($reserva->imagen_simulada);
     }

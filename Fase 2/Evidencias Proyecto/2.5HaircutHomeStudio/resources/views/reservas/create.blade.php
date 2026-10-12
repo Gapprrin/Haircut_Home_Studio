@@ -94,8 +94,9 @@
                             $selected = $item->id === $servicio->id;
                             $icon = $media->url($item->imagen) ?? asset('img/iconos/'.($fallbackIcons[$categoryItem->slug] ?? 'tratamiento.png'));
                         @endphp
-                        <a class="book-service-option {{ $selected ? 'is-selected' : '' }}" href="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'servicio']) }}" data-book-service-option data-book-service-id="{{ $item->id }}" data-book-service-url="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" data-no-loader><img src="{{ $icon }}" alt=""><div><strong>{{ $item->nombre }}</strong><small>{{ $item->descripcion ?: 'Servicio de Haircut Home Studio.' }}</small></div><span>{{ $selected ? 'Seleccionado' : 'Elegir' }}</span></a>
+                        <a class="book-service-option {{ $selected ? 'is-selected' : '' }}" href="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'servicio']) }}" data-book-service-option data-book-service-id="{{ $item->id }}" data-book-service-url="{{ $bookingUrl(['cat' => $categoryItem->slug, 'serv' => $item->id, 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" data-no-loader><img src="{{ $icon }}" alt=""><div><strong>{{ $item->nombre }}</strong><small>{{ $item->precioFormateado() }}</small><small>{{ $item->descripcion ?: 'Servicio de Haircut Home Studio.' }}</small></div><span>{{ $selected ? 'Seleccionado' : 'Elegir' }}</span></a>
                     @endforeach
+                    <p class="hint">Los servicios con precio “desde” pueden variar según el largo, la cantidad de cabello y la técnica requerida.</p>
                 </div>
             @endforeach
             <div class="book-step-actions"><a href="{{ route('home') }}" class="book-step-back">← Volver</a><button type="button" class="book-step-next" data-book-next="fecha">Siguiente <span aria-hidden="true">→</span></button></div>
@@ -168,9 +169,9 @@
             @endif
             <div class="book-card"><div class="book-photo" id="book-photo">
                 <input class="book-photo-input" type="file" id="book-foto" name="foto" accept="image/jpeg,image/png,image/webp,image/gif">
-                <label class="book-photo-drop" for="book-foto" id="book-photo-drop"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o tócala para elegir · JPG, PNG o WEBP</span></label>
+                <button type="button" class="book-photo-drop" id="book-photo-drop" aria-controls="book-foto"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o toca para elegir · JPG, PNG, WEBP o GIF · máx. 3 MB</span></button>
                 <div class="book-photo-preview" id="book-photo-preview" hidden><img alt="Vista previa de la imagen"><button type="button" class="book-photo-clear" id="book-photo-clear" aria-label="Quitar imagen">&times;</button></div>
-                <p class="book-photo-msg" id="book-photo-msg" hidden></p>
+                <p class="book-photo-msg" id="book-photo-msg" role="alert" hidden></p>
             </div></div>
             <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="fecha">← Atrás</button><button type="button" class="book-step-next" data-book-next="lugar">Siguiente <span aria-hidden="true">→</span></button></div>
         </section>
@@ -192,8 +193,9 @@
                 <div class="book-summary-row"><span>Fecha</span><strong>{{ $fecha !== '' ? \Carbon\CarbonImmutable::parse($fecha)->format('d/m/Y') : 'Pendiente' }}</strong></div>
                 <div class="book-summary-row"><span>Hora</span><strong>{{ $hora !== '' ? $hourLabel($hora).' – '.$hourLabel($endHour) : 'Pendiente' }}</strong></div>
                 <div class="book-summary-row"><span>Lugar</span><strong data-book-summary-place>{{ \App\Support\Format::lugar($lugar) }}</strong></div>
-                <div class="book-summary-row book-summary-total"><span>Valor referencial</span><strong>{{ \App\Support\Format::precio($servicio->precio) }}</strong></div>
+                <div class="book-summary-row book-summary-total"><span>Valor referencial</span><strong>{{ $servicio->precioFormateado() }}</strong></div>
             </div>
+            @if($servicio->precio_desde)<p class="hint">El precio puede variar según el largo, la cantidad de cabello y la técnica requerida.</p>@endif
             <p class="hint">El pago es presencial. Puedes cancelar hasta 10 minutos antes de la hora confirmada.</p>
             <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="lugar">← Atrás</button><button type="submit" class="book-confirm" @disabled($fecha === '' || $hora === '')>Confirmar reserva <span aria-hidden="true">→</span></button></div>
         </section>

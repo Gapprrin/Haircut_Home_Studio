@@ -2267,6 +2267,8 @@ table.book-cal td {
 }
 
 .book-photo-drop {
+  width: 100%;
+  font: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2281,6 +2283,12 @@ table.book-cal td {
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.book-photo-drop[hidden],
+.book-photo-preview[hidden],
+.book-photo-msg[hidden] {
+  display: none !important;
 }
 
 .book-photo-drop:hover,

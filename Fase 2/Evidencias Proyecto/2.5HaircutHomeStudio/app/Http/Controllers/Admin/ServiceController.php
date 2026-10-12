@@ -84,6 +84,7 @@ class ServiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $datos = $this->validarServicio($request);
+        $datos['precio_desde'] = $request->boolean('precio_desde');
         $datos['imagen'] = $this->media->store($request->file('imagen'), 'serv_');
         $datos['activo'] = true;
         Servicio::create($datos);
@@ -94,6 +95,7 @@ class ServiceController extends Controller
     public function update(Request $request, Servicio $servicio): RedirectResponse
     {
         $datos = $this->validarServicio($request);
+        $datos['precio_desde'] = $request->boolean('precio_desde');
         $datos['activo'] = $request->boolean('activo');
         $imagenAnterior = $servicio->imagen;
         $imagenNueva = $this->media->store($request->file('imagen'), 'serv_');
@@ -131,6 +133,7 @@ class ServiceController extends Controller
             'descripcion' => ['nullable', 'string'],
             'duracion_min' => ['required', 'integer', 'min:60', 'max:600'],
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999'],
+            'precio_desde' => ['sometimes', 'boolean'],
             'imagen' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
         ]);
     }

@@ -40,6 +40,26 @@ No es necesario ejecutar `storage:link` otra vez si responde que el enlace ya ex
 
 ## Base de datos
 
+### Tarifario del profesional (octubre de 2026)
+
+El catálogo contiene los 17 servicios de HairCut HomeStudio, agrupados en **Cortes y lavado**, **Coloración e iluminación** y **Alisados y tratamientos**. Los importes variables se guardan con `precio_desde` y muestran “Desde” en la selección, el resumen y la administración. Pueden variar según el largo, la cantidad de cabello y la técnica requerida.
+
+Para actualizar una base existente, sin borrar usuarios, reservas ni fotos:
+
+```powershell
+php artisan migrate
+php artisan storage:link
+npm run build
+```
+
+La migración actualiza servicios equivalentes conservando sus IDs, imágenes y bloques de agenda. Los servicios fuera del tarifario se desactivan, no se eliminan; las reservas previas mantienen su vínculo. Los nuevos bloques son referenciales y deben confirmarse con el peluquero: el tarifario no especifica duraciones. El rollback elimina el campo `precio_desde`, pero no restaura el catálogo anterior. No uses `migrate:fresh` para actualizar datos existentes.
+
+El simulador incluye cortes, secado y coloración; excluye el lavado solo (sin cambio visual) y los tratamientos. Hay prompts específicos para los nombres nuevos, incluidos Babylights, Reflejos y Colores fantasía. La muestra de fantasía utiliza violeta/magenta como ejemplo, no como restricción del servicio. Las pruebas usan el proveedor `fake`, sin enviar fotos ni consumir Gemini.
+
+Las fotos de referencia de reserva admiten JPG, PNG, WEBP y GIF hasta 3 MB, con selección, arrastre, vista previa y eliminación. Se valida también en el servidor. `storage:link` permite que el peluquero consulte las fotos guardadas.
+
+En otros equipos, comprueba que PHP permita al menos 6 MB por archivo (`upload_max_filesize`) y una petición mayor que ese tamaño (`post_max_size`), para cubrir tanto reservas como IA. No cambies los límites de la aplicación para compensar una configuración de PHP menor.
+
 El entorno local usa MySQL/MariaDB de XAMPP mediante una base independiente llamada `haircut_studio_laravel`. La conexión activa de `.env` es:
 
 ```dotenv
@@ -78,9 +98,9 @@ Los hashes bcrypt originales se conservaron, por lo que estas credenciales sigue
 
 ## Simulador con Gemini
 
-El módulo está disponible para clientes autenticados en `/simulador`. Sus opciones se obtienen automáticamente de los servicios activos de las categorías `Cortes` y `Color`; los tratamientos no se muestran. Incluye comparación antes/después, historial privado y la opción de reservar directamente el mismo servicio simulado.
+El módulo está disponible para clientes autenticados en `/simulador`. Sus opciones se obtienen automáticamente de los servicios activos de las categorías de cortes y coloración, excepto el lavado solo; los tratamientos no se muestran. Incluye comparación antes/después, historial privado y la opción de reservar directamente el mismo servicio simulado.
 
-El entorno local viene en modo demostración y no consume API:
+Para probar el flujo sin consumir API, configura explícitamente el modo demostración:
 
 ```dotenv
 AI_ENABLED=true
@@ -88,7 +108,7 @@ AI_PROVIDER=fake
 AI_PROCESS_SYNC=true
 ```
 
-En este modo se prueba el flujo completo, pero el resultado repite la fotografía original. Para activar Gemini real:
+En este modo se prueba el flujo completo, pero el resultado repite la fotografía original. No lo confundas con una generación real. Para activar Gemini real:
 
 1. Crea una clave en Google AI Studio.
 2. Edita únicamente tu archivo `.env`; nunca publiques ni envíes la clave por chat.
@@ -111,7 +131,11 @@ GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
 
 El servidor web y el worker se ejecutan en terminales separadas. Para una prueba rápida se puede usar `AI_PROCESS_SYNC=true`, pero la petición del navegador esperará a que Gemini termine.
 
+El entorno local puede usar `AI_PROVIDER=gemini` con `AI_PROCESS_SYNC=true` para llamar directamente a Gemini sin worker. La clave debe permanecer solo en `.env` (ignorado por Git); no se copia automáticamente al cambiar de carpeta de proyecto. Comprueba también que `GEMINI_IMAGE_MODEL` sea un modelo de imágenes disponible para tu clave. Las pruebas automatizadas usan proveedores falsos aunque el entorno local esté en modo real.
+
 ### Límites y privacidad
+- Las instrucciones conservan el largo, tipo, densidad, línea de nacimiento y zonas de cuero cabelludo visibles; no deben inventar cabello ni rellenar entradas o calvicie. Solo los cortes pueden reducir el largo. La coloración y el secado mantienen el cabello disponible, adaptando el resultado si es corto o escaso. Estas reglas orientan a Gemini, pero no garantizan fidelidad perfecta: revisa siempre el antes/después.
+- La reutilización de resultados incluye la huella del prompt. Al cambiar las instrucciones, una nueva solicitud genera una simulación nueva y consume el cupo habitual; el historial anterior se conserva, pero no se reutiliza como resultado actualizado.
 - 2 solicitudes por minuto por usuario y 4 por minuto por IP.
 - 3 solicitudes durante 24 horas y 5 durante 30 días por usuario.
 - Topes globales de 50 al día y 500 al mes.
@@ -137,9 +161,11 @@ Antes de publicar el sistema, cambia la contraseña de esta cuenta, desactívala
 
 ## Flujo actual de reservas
 
+En disponibilidad del peluquero, los días de descanso recibidos del formulario se validan y convierten a enteros antes de modificar fechas con Carbon. Guardar reemplaza únicamente los descansos del mes seleccionado; conserva los de otros meses y bloquea esos días para nuevas reservas.
+
 La ruta `/reservar` utiliza un asistente de cinco pasos:
 
-1. **Servicio:** se elige una categoría (`Cortes`, `Color` o `Tratamientos`) y luego un servicio.
+1. **Servicio:** se elige una categoría (`Cortes y lavado`, `Coloración e iluminación` o `Alisados y tratamientos`) y luego un servicio.
 2. **Fecha y hora:** se selecciona un día y un bloque horario disponible.
 3. **Referencia:** se puede adjuntar una imagen opcional o utilizar la simulación de Gemini vinculada.
 4. **Lugar:** se elige entre el salón y la atención a domicilio.

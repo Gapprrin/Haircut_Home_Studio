@@ -18,6 +18,9 @@ return [
     ],
     'service_prompts' => [
         'corte' => [
+            'corte de hombre' => 'Create a realistic professional men\'s haircut with a tidy shape and clean, naturally blended sides. Adapt the cut to the existing hair texture and length, preserving the current hair color.',
+            'corte de mujer' => 'Create a realistic professional women\'s haircut with healthy ends, soft face-framing movement and a refined shape. Preserve the general hair length and current hair color.',
+            'lavado y secado' => 'Style the hair as a professional wash and blow-dry with controlled frizz, natural root volume and softly shaped ends. Preserve the haircut and hair color.',
             'corte de damas' => 'Create a realistic professional women\'s haircut with a refined shape, soft face-framing movement, healthy ends, and a salon-finished appearance. Preserve the person\'s general hair length unless a small adjustment is needed for a credible haircut.',
             'corte infantil' => 'Create a neat, age-appropriate salon haircut with a natural shape, tidy ends, realistic texture, and an easy-to-maintain finish. Preserve the current hair color.',
             'lavado y brushing' => 'Style the hair as a professional wash and blow-dry: smooth, polished strands, controlled frizz, natural volume at the roots, and softly shaped ends. Do not change the haircut or color.',
@@ -25,6 +28,11 @@ return [
             'corte + lavado' => 'Create a refreshed professional haircut with tidy healthy ends, subtle movement, and a polished blow-dry finish. Preserve the current hair color and keep the result realistic for a salon consultation.',
         ],
         'color' => [
+            'tintura de retoque' => 'Retouch visible dyed root regrowth to match the existing lengths seamlessly. Preserve the haircut and the color of the mid-lengths and ends.',
+            'retoque de tintura + bano de color' => 'Retouch dyed root regrowth to match the existing lengths, then refresh the tone and shine throughout the hair with a subtle color gloss. Preserve the haircut and existing color family.',
+            'babylights' => 'Add ultra-fine, delicate babylights throughout the hair, with soft brightness, natural dimension and an almost seamless blend at the roots. Preserve the haircut.',
+            'reflejos' => 'Add soft, low-contrast tonal highlights that catch the light naturally without bold streaks or a drastic base color change. Preserve the haircut.',
+            'colores fantasia' => 'Preview a dimensional violet and magenta fantasy hair color as one illustrative salon option, with realistic roots, strand variation and shine. Preserve the haircut.',
             'cobertura de canas' => 'Cover visible gray hair and regrowth with a realistic salon color that matches the existing lengths, preserving natural tonal variation and shine.',
             'retoque de crecimiento' => 'Retouch only the visible root regrowth so it blends seamlessly with the existing dyed lengths. Preserve the current haircut and the color of the mid-lengths and ends.',
             'visos' => 'Add subtle, fine salon highlights with natural spacing and gentle contrast, creating dimension and brightness while preserving depth in the base color.',

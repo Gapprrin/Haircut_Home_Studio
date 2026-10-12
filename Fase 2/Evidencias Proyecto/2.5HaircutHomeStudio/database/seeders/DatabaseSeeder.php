@@ -33,25 +33,7 @@ class DatabaseSeeder extends Seeder
             ['id' => 3, 'nombre' => 'Tratamientos', 'slug' => 'tratamientos', 'imagen' => 'ico-tratamiento.png'],
         ]);
 
-        DB::table('servicios')->insert([
-            ['id' => 1, 'categoria_id' => 1, 'nombre' => 'Corte de damas', 'descripcion' => '15 a 30 minutos. En la agenda se reserva 1 hora.', 'duracion_min' => 60, 'precio' => 15000, 'imagen' => 'ico-corte.png', 'activo' => true],
-            ['id' => 2, 'categoria_id' => 1, 'nombre' => 'Corte infantil', 'descripcion' => 'En la agenda se reserva 1 hora.', 'duracion_min' => 60, 'precio' => 12000, 'imagen' => 'ico-infantil.png', 'activo' => true],
-            ['id' => 3, 'categoria_id' => 1, 'nombre' => 'Lavado y brushing', 'descripcion' => '25 a 40 minutos. En la agenda se reserva 1 hora.', 'duracion_min' => 60, 'precio' => 16000, 'imagen' => 'ico-brushing.png', 'activo' => true],
-            ['id' => 4, 'categoria_id' => 1, 'nombre' => 'Peinado', 'descripcion' => '20 a 40 minutos. En la agenda se reserva 1 hora.', 'duracion_min' => 60, 'precio' => 15000, 'imagen' => 'ico-peinado.png', 'activo' => true],
-            ['id' => 5, 'categoria_id' => 1, 'nombre' => 'Corte + lavado', 'descripcion' => 'A veces también incluye peinado. En la agenda se reserva 1 hora.', 'duracion_min' => 60, 'precio' => 18000, 'imagen' => 'ico-corte-lavado.png', 'activo' => true],
-            ['id' => 6, 'categoria_id' => 2, 'nombre' => 'Cobertura de canas', 'descripcion' => '1 a 1,5 horas.', 'duracion_min' => 120, 'precio' => 28000, 'imagen' => 'ico-cobertura.png', 'activo' => true],
-            ['id' => 7, 'categoria_id' => 2, 'nombre' => 'Retoque de crecimiento', 'descripcion' => '1 a 1,5 horas.', 'duracion_min' => 120, 'precio' => 22000, 'imagen' => 'ico-retoque.png', 'activo' => true],
-            ['id' => 8, 'categoria_id' => 2, 'nombre' => 'Visos', 'descripcion' => '2 a 3 horas.', 'duracion_min' => 180, 'precio' => 35000, 'imagen' => 'ico-visos.png', 'activo' => true],
-            ['id' => 9, 'categoria_id' => 2, 'nombre' => 'Mechas', 'descripcion' => '2 a 3 horas.', 'duracion_min' => 180, 'precio' => 35000, 'imagen' => 'ico-mechas.png', 'activo' => true],
-            ['id' => 10, 'categoria_id' => 2, 'nombre' => 'Balayage', 'descripcion' => '3 a 5 horas, a veces hasta 6. El tiempo varía con el cabello.', 'duracion_min' => 300, 'precio' => 45000, 'imagen' => 'ico-balayage.png', 'activo' => true],
-            ['id' => 11, 'categoria_id' => 2, 'nombre' => 'Baby lights', 'descripcion' => '4 a 5 horas, a veces hasta 6.', 'duracion_min' => 300, 'precio' => 50000, 'imagen' => 'ico-babylight.png', 'activo' => true],
-            ['id' => 12, 'categoria_id' => 2, 'nombre' => 'Color fantasía', 'descripcion' => 'En la agenda se reservan 4 horas.', 'duracion_min' => 240, 'precio' => 35000, 'imagen' => 'ico-fantasia.png', 'activo' => true],
-            ['id' => 13, 'categoria_id' => 3, 'nombre' => 'Masaje capilar', 'descripcion' => 'Aproximadamente 1 hora.', 'duracion_min' => 60, 'precio' => 18000, 'imagen' => 'ico-masaje.png', 'activo' => true],
-            ['id' => 14, 'categoria_id' => 3, 'nombre' => 'Botox capilar', 'descripcion' => '1 a 2 horas.', 'duracion_min' => 120, 'precio' => 30000, 'imagen' => 'ico-botox.png', 'activo' => true],
-            ['id' => 15, 'categoria_id' => 3, 'nombre' => 'Liso permanente', 'descripcion' => '2 a 3,5 horas. A veces se combina con retoque de color.', 'duracion_min' => 240, 'precio' => 40000, 'imagen' => 'ico-liso.png', 'activo' => true],
-            ['id' => 16, 'categoria_id' => 3, 'nombre' => 'Maquillaje social', 'descripcion' => 'Para eventos, de forma ocasional, 30 minutos a 1 hora.', 'duracion_min' => 60, 'precio' => 18000, 'imagen' => 'ico-maquillaje.png', 'activo' => true],
-            ['id' => 17, 'categoria_id' => 3, 'nombre' => 'Olaplex', 'descripcion' => 'Reparación de la fibra capilar. Aprox. 1 hora.', 'duracion_min' => 60, 'precio' => 25000, 'imagen' => 'ico-olaplex.png', 'activo' => true],
-        ]);
+        $this->call(CatalogoServiciosSeeder::class);
 
         DB::table('productos')->insert([
             ['categoria_id' => 2, 'nombre' => 'Shampoo de color', 'descripcion' => 'Cuidado para cabello teñido', 'precio' => 12990, 'activo' => true, 'orden' => 1],

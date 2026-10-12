@@ -130,6 +130,9 @@
                         </div>
                         <div class="ai-preset-grid">
                             @foreach($category->servicios as $service)
+                                @if($service->nombre === 'Colores fantasía')
+                                    <p class="hint">Colores fantasía: la muestra usa violeta y magenta. El tono definitivo se acuerda con el profesional.</p>
+                                @endif
                                 <label class="ai-preset" data-service="{{ $service->id }}">
                                     <input type="radio" name="servicio_id" value="{{ $service->id }}" @checked($previousServiceId === $service->id) @required($isActiveCategory) @disabled(!$available || !$quota['allowed'])>
                                     <img class="ai-service-icon" src="{{ $media->url($service->imagen) ?? asset('img/iconos/'.($category->slug === 'color' ? 'color.png' : 'corte.png')) }}" alt="">

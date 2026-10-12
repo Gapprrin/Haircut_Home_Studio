@@ -124,7 +124,8 @@ class ReservationController extends Controller
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
             'ai_generation_id' => ['nullable', 'integer'],
         ], [
-            'foto.image' => 'Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.',
+            'foto.image' => 'Solo se permiten imágenes (JPG, PNG, WEBP o GIF). No PDF.',
+            'foto.mimes' => 'La foto debe estar en formato JPG, PNG, WEBP o GIF.',
             'foto.max' => 'La foto no puede superar 3 MB.',
         ]);
 
@@ -166,6 +167,10 @@ class ReservationController extends Controller
                 }
 
                 $foto = $request->file('foto')?->store('fotos', 'public');
+                if ($foto === false) {
+                    $foto = null;
+                    throw ValidationException::withMessages(['foto' => 'No fue posible guardar la foto. Intenta nuevamente.']);
+                }
                 Reserva::create([
                     'usuario_id' => $request->user()->id,
                     'servicio_id' => $servicio->id,
@@ -229,7 +234,7 @@ class ReservationController extends Controller
 
         try {
             $fecha = CarbonImmutable::createFromFormat('!Y-m-d', $valor);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
 

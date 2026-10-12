@@ -7,6 +7,7 @@ use App\Models\AiGeneration;
 use App\Models\Categoria;
 use App\Models\Servicio;
 use App\Models\User;
+use App\Services\AiPromptService;
 use App\Services\AiQuotaService;
 use App\Services\PhotoSanitizer;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class AiStudioController extends Controller
     public function __construct(
         private readonly AiQuotaService $quota,
         private readonly PhotoSanitizer $sanitizer,
+        private readonly AiPromptService $prompts,
     ) {}
 
     public function index(Request $request): View
@@ -70,8 +72,7 @@ class AiStudioController extends Controller
         $servicio = Servicio::query()
             ->with('categoria')
             ->whereKey($data['servicio_id'])
-            ->where('activo', true)
-            ->whereHas('categoria', fn ($query) => $query->whereIn('slug', ['corte', 'color']))
+            ->simulables()
             ->first();
         if (! $servicio) {
             throw ValidationException::withMessages([
@@ -82,11 +83,12 @@ class AiStudioController extends Controller
         $sanitized = $this->sanitizer->sanitize($request->file('photo')->get());
         $styleCategory = $servicio->categoria->slug;
         $styleLabel = $servicio->nombre;
-        $styleKey = 'style:'.substr(hash('sha256', $styleCategory.'|'.$styleLabel), 0, 32);
+        $styleKey = 'style:'.substr(hash('sha256', $styleCategory.'|'.$styleLabel.'|'.$this->prompts->forService($servicio)), 0, 32);
         $existing = AiGeneration::query()
             ->where('usuario_id', $request->user()->id)
             ->where('style_category', $styleCategory)
             ->where('style_label', $styleLabel)
+            ->where('preset', $styleKey)
             ->where('input_hash', $sanitized['hash'])
             ->where('status', 'completed')
             ->where('expires_at', '>', now())
@@ -193,10 +195,11 @@ class AiStudioController extends Controller
             ->get();
         $serviceCategories = Categoria::query()
             ->whereIn('slug', ['corte', 'color'])
-            ->whereHas('servicios', fn ($query) => $query->where('activo', true))
-            ->with(['servicios' => fn ($query) => $query->where('activo', true)->orderBy('id')])
+            ->whereHas('servicios', fn ($query) => $query->simulables())
+            ->with(['servicios' => fn ($query) => $query->simulables()->orderBy('id')])
             ->orderBy('id')
             ->get();
+
         return view('ai.index', [
             'available' => $this->available(),
             'demoMode' => config('ai.provider') === 'fake',

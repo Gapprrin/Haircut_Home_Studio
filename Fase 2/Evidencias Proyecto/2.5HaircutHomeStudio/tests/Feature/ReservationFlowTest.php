@@ -7,9 +7,13 @@ use App\Models\Configuracion;
 use App\Models\Reserva;
 use App\Models\Servicio;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class ReservationFlowTest extends TestCase
@@ -77,5 +81,54 @@ class ReservationFlowTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertSame('confirmada', $reserva->fresh()->estado);
+    }
+
+    public function test_reference_photo_is_saved_and_available_to_the_hairdresser(): void
+    {
+        Storage::fake('public');
+        $payload = $this->photoReservationPayload();
+        $photo = UploadedFile::fake()->createWithContent('reference.png', file_get_contents(public_path('img/favicon.png')))->size(3072);
+        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['foto' => $photo])
+            ->assertSessionHasNoErrors()->assertRedirect(route('reservas.index'));
+        $reservation = Reserva::firstOrFail();
+        $this->assertNotNull($reservation->foto);
+        Storage::disk('public')->assertExists($reservation->foto);
+        $this->assertSame(file_get_contents($photo->getRealPath()), Storage::disk('public')->get($reservation->foto));
+        $this->actingAs(User::factory()->create(['rol' => 'peluquero']))
+            ->get(route('peluquero.solicitudes.index'))->assertOk()->assertSee($reservation->foto);
+    }
+
+    public function test_invalid_and_oversized_reference_photos_are_rejected_without_a_reservation(): void
+    {
+        Storage::fake('public');
+        $payload = $this->photoReservationPayload();
+        $this->actingAs(User::factory()->create());
+        foreach ([UploadedFile::fake()->create('reference.pdf', 10, 'application/pdf'), UploadedFile::fake()->createWithContent('large.png', file_get_contents(public_path('img/favicon.png')))->size(3073)] as $photo) {
+            $this->post(route('reservas.store'), $payload + ['foto' => $photo])->assertSessionHasErrors('foto');
+        }
+        $this->assertSame(0, Reserva::count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
+    public function test_failed_photo_storage_is_reported_without_creating_a_reservation(): void
+    {
+        $payload = $this->photoReservationPayload();
+        $disk = Mockery::mock(FilesystemAdapter::class);
+        $disk->shouldReceive('putFileAs')->once()->andReturn(false);
+        Storage::shouldReceive('disk')->with('public')->andReturn($disk);
+        $photo = UploadedFile::fake()->createWithContent('reference.png', file_get_contents(public_path('img/favicon.png')));
+        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['foto' => $photo])
+            ->assertSessionHasErrors('foto');
+        $this->assertSame(0, Reserva::count());
+    }
+
+    private function photoReservationPayload(): array
+    {
+        Carbon::setTestNow('2026-09-10 09:00:00');
+        Configuracion::create(['hora_inicio' => '10:30:00', 'hora_fin' => '19:30:00', 'dias_atencion' => '2,3,4,5,6']);
+        $category = Categoria::create(['nombre' => 'Cortes y lavado', 'slug' => 'corte']);
+        $service = Servicio::create(['categoria_id' => $category->id, 'nombre' => 'Corte de hombre', 'duracion_min' => 60, 'precio' => 8000]);
+
+        return ['servicio_id' => $service->id, 'fecha' => '2026-09-11', 'hora' => '10:30', 'lugar' => 'salon'];
     }
 }

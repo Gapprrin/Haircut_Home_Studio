@@ -71,10 +71,10 @@ class AvailabilityController extends Controller
                 'dias_atencion' => $dias ? implode(',', $dias) : '2,3,4,5,6',
             ]);
 
-            $inicio = CarbonImmutable::create($datos['anio'], $datos['mes'], 1);
+            $inicio = CarbonImmutable::create((int) $datos['anio'], (int) $datos['mes'], 1);
             $fin = $inicio->endOfMonth();
             DiaOff::query()->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->delete();
-            foreach (array_unique($datos['off'] ?? []) as $numeroDia) {
+            foreach (array_unique(array_map('intval', $datos['off'] ?? [])) as $numeroDia) {
                 if ($numeroDia > $inicio->daysInMonth) {
                     continue;
                 }

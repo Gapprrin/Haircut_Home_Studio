@@ -236,7 +236,7 @@ function initPhotoPicker() {
 		if (!allowed.has(file.type)) {
 			input.value = '';
 			reset();
-			showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
+			showMessage('Solo se permiten imágenes (JPG, PNG, WEBP o GIF). No PDF.');
 			return;
 		}
 		if (file.size > 3 * 1024 * 1024) {
@@ -254,7 +254,17 @@ function initPhotoPicker() {
 		wrapper.classList.add('has-file');
 	};
 
-	input.addEventListener('change', () => setFile(input.files?.[0]));
+	drop.addEventListener('click', () => input.click());
+	input.addEventListener('change', () => {
+		const file = input.files?.[0];
+		if (file) setFile(file);
+		else { reset(); showMessage(''); }
+	});
+	image.addEventListener('error', () => {
+		input.value = '';
+		reset();
+		showMessage('No se pudo leer la imagen. Elige otro archivo.');
+	});
 	clear?.addEventListener('click', () => { input.value = ''; reset(); showMessage(''); });
 	['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-drag'); }));
 	['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-drag'); }));
@@ -265,7 +275,10 @@ function initPhotoPicker() {
 			const transfer = new DataTransfer();
 			transfer.items.add(file);
 			input.files = transfer.files;
-		} catch {}
+		} catch {
+			showMessage('Tu navegador no permite arrastrar archivos. Usa Agregar imagen para seleccionarlo.');
+			return;
+		}
 		setFile(file);
 	});
 }
