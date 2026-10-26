@@ -11,7 +11,7 @@ class AiQuotaService
     public function status(User $usuario): array
     {
         $processing = AiGeneration::query()
-            ->where('usuario_id', $usuario->id)
+            ->delUsuario($usuario)
             ->whereIn('status', ['pending', 'processing'])
             ->where('created_at', '>=', now()->subMinutes(10))
             ->exists();
@@ -32,11 +32,11 @@ class AiQuotaService
         $globalMonthlyLimit = max(0, (int) config('ai.limits.global_per_month'));
 
         $dailyUsed = AiGeneration::query()
-            ->where('usuario_id', $usuario->id)
+            ->delUsuario($usuario)
             ->where('created_at', '>=', now()->subHours(24))
             ->count();
         $monthlyUsed = AiGeneration::query()
-            ->where('usuario_id', $usuario->id)
+            ->delUsuario($usuario)
             ->where('created_at', '>=', now()->subDays(30))
             ->count();
         $globalDailyUsed = AiGeneration::query()

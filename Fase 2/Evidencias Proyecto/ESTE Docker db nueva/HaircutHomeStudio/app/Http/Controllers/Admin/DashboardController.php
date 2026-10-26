@@ -20,10 +20,10 @@ class DashboardController extends Controller
         $inicioGrafico = $inicioMes->copy()->subMonths(5);
 
         $reservasMes = Reserva::query()
-            ->with('servicio')
+            ->with(['servicio', 'estadoReserva', 'detalleReserva'])
             ->whereBetween('fecha', [$inicioMes->toDateString(), $inicioMes->copy()->endOfMonth()->toDateString()])
             ->get();
-        $confirmadas = $reservasMes->whereIn('estado', ['confirmada', 'realizada']);
+        $confirmadas = $reservasMes->filter(fn (Reserva $reserva) => in_array($reserva->estado, ['confirmada', 'realizada'], true));
 
         $meses = collect(range(0, 5))->mapWithKeys(function (int $indice) use ($inicioGrafico): array {
             $fecha = CarbonImmutable::instance($inicioGrafico)->addMonths($indice);
@@ -36,7 +36,11 @@ class DashboardController extends Controller
             ]];
         })->all();
 
-        $ultimas = Reserva::query()->with('servicio')->whereDate('fecha', '>=', $inicioGrafico->toDateString())->get();
+        $ultimas = Reserva::query()
+            ->with(['servicio', 'estadoReserva', 'detalleReserva'])
+            ->whereDate('fecha', '>=', $inicioGrafico->toDateString())
+            ->get();
+
         foreach ($ultimas as $reserva) {
             $key = $reserva->fecha->format('Y-n');
             if (! isset($meses[$key])) {
@@ -49,18 +53,23 @@ class DashboardController extends Controller
         }
 
         $topServicios = $ultimas
-            ->whereIn('estado', ['confirmada', 'realizada'])
-            ->groupBy('servicio_id')
+            ->filter(fn (Reserva $reserva) => in_array($reserva->estado, ['confirmada', 'realizada'], true) && $reserva->servicio)
+            ->groupBy(fn (Reserva $reserva) => $reserva->servicio_id)
             ->map(fn ($grupo) => ['nombre' => $grupo->first()->servicio->nombre, 'n' => $grupo->count()])
             ->sortByDesc('n')
             ->take(5)
             ->values();
 
         return view('admin.dashboard', [
-            'pendientes' => Reserva::query()->where('estado', 'pendiente')->count(),
-            'hoy' => Reserva::query()->whereDate('fecha', now()->toDateString())->whereIn('estado', ['pendiente', 'confirmada', 'realizada'])->count(),
+            'pendientes' => Reserva::query()->conEstado('pendiente')->count(),
+            'hoy' => Reserva::query()
+                ->whereDate('fecha', now()->toDateString())
+                ->conEstado(['pendiente', 'confirmada', 'realizada'])
+                ->count(),
             'confirmadasMes' => $confirmadas->count(),
-            'ingresosMes' => $confirmadas->sum(fn (Reserva $reserva) => (float) $reserva->servicio->precio),
+            'ingresosMes' => $confirmadas->sum(function (Reserva $reserva) {
+                return (float) ($reserva->detalleReserva?->monto_total ?? $reserva->servicio?->precio ?? 0);
+            }),
             'meses' => $meses,
             'maxMes' => max(1, ...array_column($meses, 'total')),
             'topServicios' => $topServicios,

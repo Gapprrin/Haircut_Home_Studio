@@ -59,13 +59,14 @@
                 </div>
                 <p class="ai-disclaimer">La simulación no garantiza un resultado idéntico. El profesional evaluará color base, textura y condición del cabello.</p>
                 <div class="actions ai-result-actions">
-                    @if(auth()->user()->rol === 'cliente')
+                    @if(auth()->user()?->nombreRol() === 'cliente')
                         <a href="{{ route('reservas.create', array_filter([
                             'ai_generation' => $selected->id,
                         ])) }}" class="btn btn-primary">Usar al reservar</a>
                     @else
                         <span class="ai-linked">Resultado de prueba administrativa</span>
                     @endif
+                    <a href="{{ route('ai.image', [$selected, 'output']) }}?download=1" class="btn btn-secondary">Descargar imagen</a>
                     <form method="post" action="{{ route('ai.media.destroy', $selected) }}" onsubmit="return confirm('¿Eliminar ahora la foto original y la simulación?');">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn btn-secondary">Eliminar imágenes</button>
@@ -130,9 +131,6 @@
                         </div>
                         <div class="ai-preset-grid">
                             @foreach($category->servicios as $service)
-                                @if($service->nombre === 'Colores fantasía')
-                                    <p class="hint">Colores fantasía: la muestra usa violeta y magenta. El tono definitivo se acuerda con el profesional.</p>
-                                @endif
                                 <label class="ai-preset" data-service="{{ $service->id }}">
                                     <input type="radio" name="servicio_id" value="{{ $service->id }}" @checked($previousServiceId === $service->id) @required($isActiveCategory) @disabled(!$available || !$quota['allowed'])>
                                     <img class="ai-service-icon" src="{{ $media->url($service->imagen) ?? asset('img/iconos/'.($category->slug === 'color' ? 'color.png' : 'corte.png')) }}" alt="">

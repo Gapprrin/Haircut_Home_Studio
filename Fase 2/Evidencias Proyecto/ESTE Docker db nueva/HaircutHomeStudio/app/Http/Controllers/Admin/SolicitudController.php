@@ -21,8 +21,8 @@ class SolicitudController extends Controller
 
         return view('admin.solicitudes', [
             'solicitudes' => Reserva::query()
-                ->with(['usuario', 'servicio'])
-                ->where('estado', 'pendiente')
+                ->with(['usuario', 'servicio', 'estadoReserva', 'detalleReserva'])
+                ->conEstado('pendiente')
                 ->orderBy('fecha')
                 ->orderBy('hora')
                 ->get(),
@@ -34,14 +34,14 @@ class SolicitudController extends Controller
         $datos = $request->validate([
             'accion' => ['required', Rule::in(['confirmar', 'rechazar'])],
         ]);
-        $reserva->load(['usuario', 'servicio']);
+        $reserva->load(['usuario', 'servicio', 'estadoReserva']);
 
         if ($reserva->estado !== 'pendiente') {
             return back()->with('error', 'La solicitud ya no está pendiente.');
         }
 
         $confirmar = $datos['accion'] === 'confirmar';
-        $reserva->update(['estado' => $confirmar ? 'confirmada' : 'rechazada']);
+        $reserva->asignarEstadoUi($confirmar ? 'confirmada' : 'rechazada');
         $asunto = $confirmar ? 'Reserva confirmada — Haircut Studio' : 'Reserva rechazada — Haircut Studio';
         $cuerpo = $confirmar
             ? "Hola {$reserva->usuario->nombre},\n\nTu reserva de {$reserva->servicio->nombre} el {$reserva->fecha->format('Y-m-d')} a las ".substr($reserva->hora, 0, 5)." fue CONFIRMADA.\n\nHaircut Studio"

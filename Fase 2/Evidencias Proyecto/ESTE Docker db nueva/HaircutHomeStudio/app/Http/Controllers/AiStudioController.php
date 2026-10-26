@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Jobs\GenerateHairPreview;
 use App\Models\AiGeneration;
-use App\Models\Categoria;
 use App\Models\Servicio;
+use App\Models\TipoServicio;
 use App\Models\User;
 use App\Services\AiPromptService;
 use App\Services\AiQuotaService;
@@ -29,13 +29,21 @@ class AiStudioController extends Controller
         private readonly AiPromptService $prompts,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($request->user()?->esAdmin()) {
+            return redirect()->route('staff.welcome');
+        }
+
         return $this->view($request);
     }
 
-    public function show(Request $request, AiGeneration $generation): View
+    public function show(Request $request, AiGeneration $generation): View|RedirectResponse
     {
+        if ($request->user()?->esAdmin()) {
+            return redirect()->route('staff.welcome');
+        }
+
         $this->ensureOwner($request, $generation);
 
         return $this->view($request, $generation);
@@ -43,6 +51,10 @@ class AiStudioController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->user()?->esAdmin()) {
+            return redirect()->route('staff.welcome');
+        }
+
         if (! $this->available()) {
             return back()->with('error', 'El simulador todavía no está habilitado.');
         }
@@ -56,7 +68,11 @@ class AiStudioController extends Controller
                 'max:6144',
                 'dimensions:max_width=4096,max_height=4096',
             ],
-            'servicio_id' => ['required', 'integer', Rule::exists('servicios', 'id')->where('activo', true)],
+            'servicio_id' => [
+                'required',
+                'integer',
+                Rule::exists('SERVICIO', 'id_servicio')->where('disponibilidad', true),
+            ],
             'consent' => ['accepted'],
         ], [
             'photo.required' => 'Selecciona una fotografía.',
@@ -70,7 +86,7 @@ class AiStudioController extends Controller
         ]);
 
         $servicio = Servicio::query()
-            ->with('categoria')
+            ->with('tipoServicio')
             ->whereKey($data['servicio_id'])
             ->simulables()
             ->first();
@@ -81,18 +97,19 @@ class AiStudioController extends Controller
         }
 
         $sanitized = $this->sanitizer->sanitize($request->file('photo')->get());
-        $styleCategory = $servicio->categoria->slug;
+        $styleCategory = (string) ($servicio->tipoServicio?->slug ?? '');
         $styleLabel = $servicio->nombre;
         $styleKey = 'style:'.substr(hash('sha256', $styleCategory.'|'.$styleLabel.'|'.$this->prompts->forService($servicio)), 0, 32);
+        $ownerHash = AiGeneration::ownerHash($request->user());
         $existing = AiGeneration::query()
-            ->where('usuario_id', $request->user()->id)
+            ->delUsuario($request->user())
             ->where('style_category', $styleCategory)
             ->where('style_label', $styleLabel)
             ->where('preset', $styleKey)
             ->where('input_hash', $sanitized['hash'])
             ->where('status', 'completed')
             ->where('expires_at', '>', now())
-            ->latest('id')
+            ->latest('id_ai_gen')
             ->first();
 
         if ($existing?->output_path && Storage::disk('local')->exists($existing->output_path)) {
@@ -102,8 +119,8 @@ class AiStudioController extends Controller
 
         $inputPath = null;
         try {
-            $generation = DB::transaction(function () use ($request, $styleCategory, $styleLabel, $styleKey, $sanitized, &$inputPath): AiGeneration {
-                $usuario = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+            $generation = DB::transaction(function () use ($request, $styleCategory, $styleLabel, $styleKey, $sanitized, $ownerHash, &$inputPath): AiGeneration {
+                $usuario = User::query()->lockForUpdate()->findOrFail($request->user()->getKey());
                 $quota = $this->quota->status($usuario);
                 if (! $quota['allowed']) {
                     throw ValidationException::withMessages(['quota' => $quota['reason']]);
@@ -115,14 +132,13 @@ class AiStudioController extends Controller
                 }
 
                 return AiGeneration::create([
-                    'usuario_id' => $usuario->id,
                     'style_category' => $styleCategory,
                     'style_label' => $styleLabel,
                     'preset' => $styleKey,
                     'input_path' => $inputPath,
                     'input_hash' => $sanitized['hash'],
                     'status' => 'pending',
-                    'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
+                    'ip_hash' => $ownerHash,
                     'expires_at' => now()->addHours(max(1, (int) config('ai.retention_hours'))),
                 ]);
             });
@@ -134,9 +150,9 @@ class AiStudioController extends Controller
         }
 
         if ((bool) config('ai.process_sync')) {
-            GenerateHairPreview::dispatchSync($generation->id);
+            GenerateHairPreview::dispatchSync($generation->getKey());
         } else {
-            GenerateHairPreview::dispatch($generation->id)->onQueue('ai');
+            GenerateHairPreview::dispatch($generation->getKey())->onQueue('ai');
         }
 
         return redirect()->route('ai.show', $generation);
@@ -163,11 +179,18 @@ class AiStudioController extends Controller
 
         $bytes = Storage::disk('local')->get($path);
         $mimeType = @getimagesizefromstring($bytes)['mime'] ?? 'application/octet-stream';
+        $extension = match ($mimeType) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+        $download = $request->boolean('download');
+        $filename = Str::slug($generation->style_label ?: 'simulacion').'-'.$kind.'.'.$extension;
 
         return response($bytes, 200, [
             'Content-Type' => $mimeType,
             'Cache-Control' => 'private, no-store, max-age=0',
-            'Content-Disposition' => 'inline',
+            'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$filename.'"',
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'",
         ]);
@@ -189,15 +212,15 @@ class AiStudioController extends Controller
     private function view(Request $request, ?AiGeneration $selected = null): View
     {
         $generations = AiGeneration::query()
-            ->where('usuario_id', $request->user()->id)
-            ->latest('id')
+            ->delUsuario($request->user())
+            ->latest('id_ai_gen')
             ->limit(12)
             ->get();
-        $serviceCategories = Categoria::query()
+        $serviceCategories = TipoServicio::query()
             ->whereIn('slug', ['corte', 'color'])
             ->whereHas('servicios', fn ($query) => $query->simulables())
-            ->with(['servicios' => fn ($query) => $query->simulables()->orderBy('id')])
-            ->orderBy('id')
+            ->with(['servicios' => fn ($query) => $query->simulables()->orderBy('id_servicio')])
+            ->orderBy('id_tipo_servicio')
             ->get();
 
         return view('ai.index', [
@@ -205,7 +228,7 @@ class AiStudioController extends Controller
             'demoMode' => config('ai.provider') === 'fake',
             'presets' => (array) config('ai.presets'),
             'serviceCategories' => $serviceCategories,
-            'serviceCount' => $serviceCategories->sum(fn (Categoria $category) => $category->servicios->count()),
+            'serviceCount' => $serviceCategories->sum(fn (TipoServicio $category) => $category->servicios->count()),
             'quota' => $this->quota->status($request->user()),
             'generations' => $generations,
             'selected' => $selected,
@@ -220,12 +243,11 @@ class AiStudioController extends Controller
 
     private function ensureOwner(Request $request, AiGeneration $generation): void
     {
-        abort_unless($generation->usuario_id === $request->user()->id, 404);
+        abort_unless($generation->perteneceA($request->user()), 404);
     }
 
     private function ensureImageAccess(Request $request, AiGeneration $generation): void
     {
-        $isOwner = $generation->usuario_id === $request->user()->id;
-        abort_unless($isOwner, 404);
+        abort_unless($generation->perteneceA($request->user()), 404);
     }
 }

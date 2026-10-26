@@ -63,10 +63,11 @@
             <h3>Meses visibles</h3>
             <p class="hint">El mes actual siempre está visible. Marca los meses futuros que quieras abrir para reservas.</p>
             <div class="vis-picker">
-                <div class="vis-picker-head"><label class="year-menu-label" for="visible-year">Año</label><select id="visible-year" data-visible-year>@foreach(array_reverse($years) as $year)<option value="{{ $year }}" @selected($year === now()->year)>{{ $year }}</option>@endforeach</select></div>
+                @php($anioActual = (int) now()->format('Y'))
+                <div class="vis-picker-head"><label class="year-menu-label" for="visible-year">Año</label><select id="visible-year" data-visible-year>@foreach(array_reverse($years) as $year)<option value="{{ $year }}" @selected($year === $anioActual)>{{ $year }}</option>@endforeach</select></div>
                 <div data-visible-panels>
                     @foreach($years as $year)
-                        <div class="vis-picker-list" data-visible-panel="{{ $year }}" @hidden($year !== now()->year)>
+                        <div class="vis-picker-list" data-visible-panel="{{ $year }}" @if($year !== $anioActual) hidden @endif>
                             @foreach(\App\Support\Format::MESES as $number => $name)
                                 @php($key = sprintf('%04d-%02d', $year, $number))
                                 @php($isCurrent = $key === $currentKey)

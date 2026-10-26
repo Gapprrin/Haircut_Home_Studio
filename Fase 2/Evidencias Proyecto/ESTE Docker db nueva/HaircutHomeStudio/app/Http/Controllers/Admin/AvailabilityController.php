@@ -3,18 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\DiaOff;
-use App\Models\MesVisible;
 use App\Services\AvailabilityService;
+use App\Services\AvailabilityStore;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AvailabilityController extends Controller
 {
-    public function __construct(private readonly AvailabilityService $availability) {}
+    public function __construct(
+        private readonly AvailabilityService $availability,
+        private readonly AvailabilityStore $store,
+    ) {}
 
     public function edit(Request $request): View
     {
@@ -24,22 +25,20 @@ class AvailabilityController extends Controller
             $mes = (int) now()->format('n');
         }
 
-        $configuracion = $this->availability->configuracion();
-        $inicio = CarbonImmutable::create($anio, $mes, 1);
-        $fin = $inicio->endOfMonth();
-        $offs = DiaOff::query()->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
-            ->get()->map(fn (DiaOff $dia) => $dia->fecha->day)->all();
-        $visibles = MesVisible::query()->get()->mapWithKeys(
-            fn (MesVisible $visible) => [sprintf('%04d-%02d', $visible->anio, $visible->mes) => true]
-        )->all();
-        $anioTecho = max(2035, $anio, (int) now()->format('Y') + 9, (int) MesVisible::query()->max('anio'));
+        $visibles = $this->availability->mesesVisiblesMapa();
+        $anioTecho = max(
+            2035,
+            $anio,
+            (int) now()->format('Y') + 9,
+            collect(array_keys($visibles))->map(fn (string $ym) => (int) substr($ym, 0, 4))->max() ?: 0
+        );
 
         return view('admin.disponibilidad', [
             'anio' => $anio,
             'mes' => $mes,
-            'configuracion' => $configuracion,
+            'configuracion' => $this->availability->configuracion(),
             'diasAtencion' => $this->availability->diasAtencion(),
-            'offs' => $offs,
+            'offs' => $this->availability->diasOffDelMes($anio, $mes),
             'semanas' => $this->availability->calendario($anio, $mes),
             'visibles' => $visibles,
             'anioTecho' => $anioTecho,
@@ -61,45 +60,45 @@ class AvailabilityController extends Controller
             'meses_visibles.*' => ['date_format:Y-m'],
         ]);
 
-        DB::transaction(function () use ($datos): void {
-            $configuracion = $this->availability->configuracion();
-            $dias = array_values(array_unique(array_map('intval', $datos['dias'] ?? [])));
-            sort($dias);
-            $configuracion->update([
-                'hora_inicio' => $datos['hora_inicio'].':00',
-                'hora_fin' => $datos['hora_fin'].':00',
-                'dias_atencion' => $dias ? implode(',', $dias) : '2,3,4,5,6',
-            ]);
+        $dias = array_values(array_unique(array_map('intval', $datos['dias'] ?? [])));
+        sort($dias);
 
-            $inicio = CarbonImmutable::create((int) $datos['anio'], (int) $datos['mes'], 1);
-            $fin = $inicio->endOfMonth();
-            DiaOff::query()->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->delete();
-            foreach (array_unique(array_map('intval', $datos['off'] ?? [])) as $numeroDia) {
-                if ($numeroDia > $inicio->daysInMonth) {
-                    continue;
-                }
-                $fecha = $inicio->setDay($numeroDia);
-                if (! in_array($fecha->dayOfWeekIso, [1, 7], true)) {
-                    DiaOff::firstOrCreate([
-                        'fecha' => $fecha->toDateString(),
-                    ], ['configuracion_id' => $configuracion->id]);
-                }
+        $inicio = CarbonImmutable::create((int) $datos['anio'], (int) $datos['mes'], 1);
+        $fin = $inicio->endOfMonth()->toDateString();
+        $inicioStr = $inicio->toDateString();
+
+        $offs = collect($this->store->all()['dias_off'])
+            ->reject(fn (string $fecha) => $fecha >= $inicioStr && $fecha <= $fin)
+            ->values();
+
+        foreach (array_unique(array_map('intval', $datos['off'] ?? [])) as $numeroDia) {
+            if ($numeroDia > $inicio->daysInMonth) {
+                continue;
             }
-
-            $meses = collect($datos['meses_visibles'] ?? [])
-                ->push(now()->format('Y-m'))
-                ->unique()
-                ->filter(function (string $valor): bool {
-                    $fecha = CarbonImmutable::createFromFormat('!Y-m', $valor);
-
-                    return $fecha->greaterThanOrEqualTo(now()->startOfMonth());
-                });
-            MesVisible::query()->delete();
-            foreach ($meses as $valor) {
-                [$anio, $mes] = array_map('intval', explode('-', $valor));
-                MesVisible::create(['configuracion_id' => $configuracion->id, 'anio' => $anio, 'mes' => $mes]);
+            $fecha = $inicio->setDay($numeroDia);
+            if (! in_array($fecha->dayOfWeekIso, [1, 7], true)) {
+                $offs->push($fecha->toDateString());
             }
-        });
+        }
+
+        $meses = collect($datos['meses_visibles'] ?? [])
+            ->push(now()->format('Y-m'))
+            ->unique()
+            ->filter(function (string $valor): bool {
+                $fecha = CarbonImmutable::createFromFormat('!Y-m', $valor);
+
+                return $fecha->greaterThanOrEqualTo(now()->startOfMonth());
+            })
+            ->values()
+            ->all();
+
+        $this->availability->guardarConfiguracion(
+            $datos['hora_inicio'].':00',
+            $datos['hora_fin'].':00',
+            $dias ? implode(',', $dias) : '2,3,4,5,6',
+            $offs->unique()->values()->all(),
+            $meses,
+        );
 
         return redirect()->route('peluquero.disponibilidad.edit', ['anio' => $datos['anio'], 'mes' => $datos['mes']])
             ->with('success', 'Disponibilidad guardada.');

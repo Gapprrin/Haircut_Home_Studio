@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\AiImageProvider;
-use App\Models\Configuracion;
+use App\Services\AvailabilityStore;
 use App\Services\FakeAiImageProvider;
 use App\Services\GeminiImageProvider;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -44,7 +44,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('layouts.app', function ($view): void {
-            $view->with('layoutConfig', (object) config('reglasnegocio'));
+            $data = app(AvailabilityStore::class)->all();
+            $view->with('layoutConfig', (object) [
+                'hora_inicio' => $data['hora_inicio'],
+                'hora_fin' => $data['hora_fin'],
+                'dias_atencion' => $data['dias_atencion'],
+            ]);
         });
     }
 }

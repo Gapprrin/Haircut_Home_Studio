@@ -9,16 +9,25 @@ class ReservationWorkflowService
     public function actualizarRealizadas(): int
     {
         $actualizadas = 0;
+        $idRealizada = Reserva::idEstadoUi('realizada');
 
-        // Usamos whereHas para filtrar a través de la relación del estado
-        Reserva::query()->whereHas('estadoReserva', function ($query) {
-            $query->where('estado_reserva', 'Agendada');
-        })->get()->each(function (Reserva $reserva) use (&$actualizadas): void {
-            if ($reserva->fecha->setTimeFromTimeString($reserva->hora)->isPast()) {
-                $reserva->update(['id_estado_reserva' => 1]);
-                $actualizadas++;
-            }
-        });
+        if ($idRealizada === null) {
+            return 0;
+        }
+
+        Reserva::query()
+            ->conEstado('confirmada')
+            ->get()
+            ->each(function (Reserva $reserva) use (&$actualizadas, $idRealizada): void {
+                if ($reserva->fecha === null || $reserva->hora === null) {
+                    return;
+                }
+
+                if ($reserva->fecha->copy()->setTimeFromTimeString($reserva->hora)->isPast()) {
+                    $reserva->update(['id_estado_reserva' => $idRealizada]);
+                    $actualizadas++;
+                }
+            });
 
         return $actualizadas;
     }

@@ -76,7 +76,7 @@ class GenerateHairPreview implements ShouldQueue
             Storage::disk('local')->delete($generation->input_path);
 
             Log::warning('AI hair preview failed.', [
-                'generation_id' => $generation->id,
+                'generation_id' => $generation->getKey(),
                 'error_code' => $generation->error_code,
             ]);
         }

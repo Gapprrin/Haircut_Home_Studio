@@ -18,19 +18,24 @@ class CatalogController extends Controller
     public function index(): View
     {
         return view('admin.catalogo.index', [
-            'productos' => Producto::query()->with('categoria')->orderBy('orden')->orderBy('id')->get(),
-            'categorias' => Categoria::query()->orderBy('id')->get(),
-            'proximoOrden' => ((int) Producto::query()->max('orden')) + 1,
+            'productos' => Producto::query()->with('categoria')->orderBy('id_producto')->get(),
+            'categorias' => Categoria::query()->orderBy('id_categoria')->get(),
+            'proximoOrden' => ((int) Producto::query()->max('id_producto')) + 1,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $datos = $this->validar($request);
-        $datos['imagen'] = $this->media->store($request->file('imagen'), 'prod_');
-        $datos['activo'] = true;
-        $datos['orden'] = ((int) Producto::query()->max('orden')) + 1;
-        Producto::create($datos);
+
+        Producto::create([
+            'producto' => $datos['nombre'],
+            'descripcion' => $datos['descripcion'] ?? '',
+            'precio' => (int) $datos['precio'],
+            'imagen' => $this->media->store($request->file('imagen'), 'prod_'),
+            'disponibilidad' => true,
+            'id_categoria' => $datos['categoria_id'],
+        ]);
 
         return back()->with('success', 'Producto agregado al catálogo.');
     }
@@ -38,14 +43,22 @@ class CatalogController extends Controller
     public function update(Request $request, Producto $producto): RedirectResponse
     {
         $datos = $this->validar($request, true);
-        $datos['activo'] = $request->boolean('activo');
-        $datos['orden'] = max(1, (int) ($datos['orden'] ?? $producto->orden));
         $imagenAnterior = $producto->imagen;
         $imagenNueva = $this->media->store($request->file('imagen'), 'prod_');
+
+        $payload = [
+            'producto' => $datos['nombre'],
+            'descripcion' => $datos['descripcion'] ?? '',
+            'precio' => (int) $datos['precio'],
+            'disponibilidad' => $request->boolean('activo'),
+            'id_categoria' => $datos['categoria_id'],
+        ];
+
         if ($imagenNueva) {
-            $datos['imagen'] = $imagenNueva;
+            $payload['imagen'] = $imagenNueva;
         }
-        $producto->update($datos);
+
+        $producto->update($payload);
 
         if ($imagenNueva) {
             $this->media->delete($imagenAnterior);
@@ -60,18 +73,17 @@ class CatalogController extends Controller
         $producto->delete();
         $this->media->delete($imagen);
 
-        return back()->with('success', 'Producto eliminado. El número de orden queda libre para el siguiente.');
+        return back()->with('success', 'Producto eliminado.');
     }
 
     /** @return array<string, mixed> */
     private function validar(Request $request, bool $edicion = false): array
     {
         return $request->validate([
-            'categoria_id' => ['required', 'integer', Rule::exists('categorias', 'id')],
-            'nombre' => ['required', 'string', 'max:120'],
-            'descripcion' => ['nullable', 'string'],
+            'categoria_id' => ['required', 'integer', Rule::exists('CATEGORIA', 'id_categoria')],
+            'nombre' => ['required', 'string', 'max:50'],
+            'descripcion' => ['nullable', 'string', 'max:200'],
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999'],
-            'orden' => [$edicion ? 'nullable' : 'sometimes', 'integer', 'min:1'],
             'imagen' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
         ]);
     }

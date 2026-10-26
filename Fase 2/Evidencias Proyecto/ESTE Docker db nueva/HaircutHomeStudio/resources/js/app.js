@@ -87,7 +87,7 @@ function initLoader() {
 	});
 	document.addEventListener('click', (event) => {
 		if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-		if (event.target.closest('.nav-toggle, .side-nav-close, .carousel-dot, .carousel-btn, [data-panel-toggle], [data-panel-close], [data-no-loader], #header-back')) return;
+		if (event.target.closest('.nav-toggle, .side-nav-close, .carousel-dot, .carousel-btn, [data-panel-toggle], [data-panel-close], [data-no-loader], #header-back, [data-gallery-open], .gallery-modal')) return;
 		const link = event.target.closest('a[href]');
 		if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
 		const href = link.getAttribute('href') || '';
@@ -236,7 +236,7 @@ function initPhotoPicker() {
 		if (!allowed.has(file.type)) {
 			input.value = '';
 			reset();
-			showMessage('Solo se permiten imágenes (JPG, PNG, WEBP o GIF). No PDF.');
+			showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
 			return;
 		}
 		if (file.size > 3 * 1024 * 1024) {
@@ -254,17 +254,7 @@ function initPhotoPicker() {
 		wrapper.classList.add('has-file');
 	};
 
-	drop.addEventListener('click', () => input.click());
-	input.addEventListener('change', () => {
-		const file = input.files?.[0];
-		if (file) setFile(file);
-		else { reset(); showMessage(''); }
-	});
-	image.addEventListener('error', () => {
-		input.value = '';
-		reset();
-		showMessage('No se pudo leer la imagen. Elige otro archivo.');
-	});
+	input.addEventListener('change', () => setFile(input.files?.[0]));
 	clear?.addEventListener('click', () => { input.value = ''; reset(); showMessage(''); });
 	['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-drag'); }));
 	['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-drag'); }));
@@ -275,10 +265,7 @@ function initPhotoPicker() {
 			const transfer = new DataTransfer();
 			transfer.items.add(file);
 			input.files = transfer.files;
-		} catch {
-			showMessage('Tu navegador no permite arrastrar archivos. Usa Agregar imagen para seleccionarlo.');
-			return;
-		}
+		} catch {}
 		setFile(file);
 	});
 }
@@ -585,6 +572,63 @@ function initBookingWizard() {
 	show(current, false);
 }
 
+function initGalleryLightbox() {
+	const modal = document.getElementById('gallery-modal');
+	const image = document.getElementById('gallery-modal-image');
+	const caption = document.getElementById('gallery-modal-caption');
+	const triggers = Array.from(document.querySelectorAll('[data-gallery-open]'));
+	if (!modal || !image || triggers.length === 0) return;
+
+	let index = 0;
+	let lastFocus = null;
+
+	const items = triggers.map((trigger) => {
+		const img = trigger.querySelector('img');
+		return {
+			src: trigger.getAttribute('data-gallery-src') || img?.currentSrc || img?.src || '',
+			alt: trigger.getAttribute('data-gallery-alt') || img?.alt || trigger.textContent?.trim() || '',
+		};
+	}).filter((item) => item.src);
+
+	if (items.length === 0) return;
+
+	const show = (nextIndex) => {
+		index = (nextIndex + items.length) % items.length;
+		const item = items[index];
+		image.src = item.src;
+		image.alt = item.alt;
+		if (caption) caption.textContent = item.alt;
+	};
+
+	const open = (nextIndex) => {
+		lastFocus = document.activeElement;
+		show(nextIndex);
+		modal.hidden = false;
+		document.body.classList.add('gallery-open');
+		modal.querySelector('.gallery-modal-close')?.focus();
+	};
+
+	const close = () => {
+		modal.hidden = true;
+		document.body.classList.remove('gallery-open');
+		image.removeAttribute('src');
+		lastFocus?.focus?.();
+	};
+
+	triggers.forEach((trigger, triggerIndex) => {
+		trigger.addEventListener('click', () => open(triggerIndex));
+	});
+	modal.querySelectorAll('[data-gallery-close]').forEach((el) => el.addEventListener('click', close));
+	modal.querySelector('[data-gallery-prev]')?.addEventListener('click', () => show(index - 1));
+	modal.querySelector('[data-gallery-next]')?.addEventListener('click', () => show(index + 1));
+	document.addEventListener('keydown', (event) => {
+		if (modal.hidden) return;
+		if (event.key === 'Escape') close();
+		if (event.key === 'ArrowLeft') show(index - 1);
+		if (event.key === 'ArrowRight') show(index + 1);
+	});
+}
+
 initReveal();
 initNavigation();
 initLoader();
@@ -596,3 +640,4 @@ initHours();
 initSmallInteractions();
 initAiStudio();
 initBookingWizard();
+initGalleryLightbox();

@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Haircut Studio - Panel', 'section' => 'admin', 'page' => 'panel'])
 
+
 @section('content')
 <section class="dash-head">
     <div>

@@ -1,6 +1,9 @@
 @extends('layouts.app', ['title' => 'Haircut Studio - Solicitudes', 'section' => 'admin', 'page' => 'solicitudes'])
 
 @section('content')
+@php
+    $media = app(\App\Services\MediaService::class);
+@endphp
 <section class="card">
     <h2>Solicitudes Pendientes</h2>
     @if($solicitudes->isEmpty())
@@ -10,15 +13,26 @@
             <thead><tr><th>Cliente</th><th>Servicio</th><th>Lugar</th><th>Fecha / Hora</th><th>Foto</th><th>Acción</th></tr></thead>
             <tbody>
             @foreach($solicitudes as $solicitud)
+                @php
+                    $fotoUrl = $solicitud->foto ? $media->url($solicitud->foto) : null;
+                    $simUrl = $solicitud->imagen_simulada ? route('reservas.simulated-image', $solicitud) : null;
+                    $cliente = $solicitud->usuario->nombre;
+                @endphp
                 <tr>
-                    <td data-label="Cliente">{{ $solicitud->usuario->nombre }}</td>
+                    <td data-label="Cliente">{{ $cliente }}</td>
                     <td data-label="Servicio">{{ $solicitud->servicio->nombre }}</td>
                     <td data-label="Lugar">{{ \App\Support\Format::lugar($solicitud->lugar) }}</td>
                     <td data-label="Fecha / Hora">{{ $solicitud->fecha->format('d/m') }} · {{ substr($solicitud->hora, 0, 5) }}</td>
                     <td data-label="Foto">
-                        @if($solicitud->foto)<a href="{{ app(\App\Services\MediaService::class)->url($solicitud->foto) }}" target="_blank">Referencia</a>@endif
-                        @if($solicitud->imagen_simulada)<a href="{{ route('reservas.simulated-image', $solicitud) }}" target="_blank">Simulación IA</a>@endif
-                        @if(!$solicitud->foto && !$solicitud->imagen_simulada)<span class="hint">(sin foto)</span>@endif
+                        @if($fotoUrl)
+                            <button type="button" class="linkish" data-gallery-open data-gallery-src="{{ $fotoUrl }}" data-gallery-alt="Referencia de {{ $cliente }}" data-no-loader>Referencia</button>
+                        @endif
+                        @if($simUrl)
+                            <button type="button" class="linkish" data-gallery-open data-gallery-src="{{ $simUrl }}" data-gallery-alt="Simulación IA de {{ $cliente }}" data-no-loader>Simulación IA</button>
+                        @endif
+                        @if(!$fotoUrl && !$simUrl)
+                            <span class="hint">(sin foto)</span>
+                        @endif
                     </td>
                     <td data-label="Acción">
                         <div class="actions">
@@ -33,4 +47,17 @@
         <p class="hint">Al confirmar, la hora queda reservada de forma definitiva. Al rechazar, el cupo se libera de inmediato.</p>
     @endif
 </section>
+
+<div class="gallery-modal" id="gallery-modal" hidden data-no-loader>
+    <div class="gallery-modal-backdrop" data-gallery-close></div>
+    <div class="gallery-modal-dialog" role="dialog" aria-modal="true" aria-label="Vista de la foto de la solicitud">
+        <button type="button" class="gallery-modal-close" data-gallery-close aria-label="Cerrar">×</button>
+        <button type="button" class="gallery-modal-nav is-prev" data-gallery-prev aria-label="Imagen anterior">‹</button>
+        <figure class="gallery-modal-figure">
+            <img src="" alt="" id="gallery-modal-image">
+            <figcaption id="gallery-modal-caption"></figcaption>
+        </figure>
+        <button type="button" class="gallery-modal-nav is-next" data-gallery-next aria-label="Imagen siguiente">›</button>
+    </div>
+</div>
 @endsection

@@ -11,9 +11,10 @@
     if ($section === 'admin') $classes[] = 'admin-page';
     if ($isHome) $classes[] = 'user-motion';
     $usuario = auth()->user();
-    $backRoute = $usuario?->rol === 'admin'
+    $rolNombre = strtolower((string) ($usuario?->rol?->rol ?? ''));
+    $backRoute = $rolNombre === 'admin'
         ? route('admin.servicios.index')
-        : ($usuario?->rol === 'peluquero' ? route('peluquero.dashboard') : route('home'));
+        : ($rolNombre === 'peluquero' ? route('peluquero.dashboard') : route('home'));
     $horaInicio = substr((string) $layoutConfig->hora_inicio, 0, 5);
     $horaFin = substr((string) $layoutConfig->hora_fin, 0, 5);
 @endphp
@@ -52,7 +53,7 @@
                 <a href="{{ route('login') }}" class="btn-nav btn-nav-outline">Iniciar sesión</a>
                 <a href="{{ route('login', ['modo' => 'registro']) }}" class="btn-nav btn-nav-fill">Registrarse</a>
             @else
-                <span class="nav-user nav-pill">{{ $usuario->nombre_usuario }}</span>
+                <a href="{{ route('perfil.edit') }}" class="nav-user nav-pill" title="Editar mi información">{{ $usuario->nombre_usuario }}</a>
             @endguest
             @unless($isHome)
                 <a href="{{ $backRoute }}" class="header-back" id="header-back" aria-label="Volver atrás" title="Volver atrás">
@@ -74,17 +75,19 @@
                     <a href="{{ route('login') }}" class="btn-nav btn-nav-outline">Iniciar sesión</a>
                     <a href="{{ route('login', ['modo' => 'registro']) }}" class="btn-nav btn-nav-fill">Registrarse</a>
                 </div>
+            @else
+                <a href="{{ route('perfil.edit') }}" class="side-nav-user {{ $page === 'perfil' ? 'is-current' : '' }}" title="Editar mi información">{{ $usuario->nombre_usuario }}</a>
             @endguest
 
-            @if($usuario?->rol === 'peluquero')
+            @if($rolNombre === 'peluquero')
                 <a href="{{ route('peluquero.dashboard') }}" class="nav-link {{ $page === 'panel' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">▣</span> Estadísticas</a>
                 <a href="{{ route('peluquero.disponibilidad.edit') }}" class="nav-link {{ $page === 'disponibilidad' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">▦</span> Disponibilidad</a>
                 <a href="{{ route('peluquero.solicitudes.index') }}" class="nav-link {{ $page === 'solicitudes' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✉</span> Solicitudes</a>
                 <a href="{{ route('peluquero.horas.index') }}" class="nav-link {{ $page === 'horas' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◷</span> Horas</a>
-            @elseif($usuario?->rol === 'admin')
+            @elseif($rolNombre === 'admin')
                 <a href="{{ route('admin.servicios.index') }}" class="nav-link {{ $page === 'servicios' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✂</span> Servicios</a>
                 <a href="{{ route('admin.catalogo.index') }}" class="nav-link {{ $page === 'catalogo' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">▣</span> Catálogo</a>
-                <a href="{{ route('ai.index') }}" class="nav-link {{ $page === 'ai' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✦</span> Simulador</a>
+                <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ $page === 'usuarios' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">☺</span> Personas</a>
             @else
                 <a href="{{ route('home') }}" class="nav-link {{ $page === 'inicio' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">⌂</span> Inicio</a>
                 <a href="{{ route('productos.index') }}" class="nav-link {{ $page === 'productos' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◈</span> Productos</a>

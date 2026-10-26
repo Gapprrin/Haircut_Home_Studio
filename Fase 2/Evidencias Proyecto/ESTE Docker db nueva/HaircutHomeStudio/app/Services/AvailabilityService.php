@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\DiaOff;
-use App\Models\MesVisible;
 use App\Models\Reserva;
 use App\Models\Servicio;
 use Carbon\CarbonImmutable;
@@ -12,17 +10,50 @@ use Illuminate\Support\Collection;
 
 class AvailabilityService
 {
-    // dejo la función anterior para evitar modificar todas las llamadas.
-    public function configuracion(): Object
+    public function __construct(private readonly AvailabilityStore $store) {}
+
+    public function configuracion(): object
     {
-        // gracias a que creamos el archivo de configuración en config, podemos acceder a
-        // sus valores desde cualquier lugar.
-        return (object) config('reglasnegocio');
-        // return Configuracion::query()->firstOrCreate([], [
-        //     'hora_inicio' => '10:30:00',
-        //     'hora_fin' => '19:30:00',
-        //     'dias_atencion' => '2,3,4,5,6',
-        // ]);
+        $data = $this->store->all();
+
+        return (object) [
+            'hora_inicio' => $data['hora_inicio'],
+            'hora_fin' => $data['hora_fin'],
+            'dias_atencion' => $data['dias_atencion'],
+        ];
+    }
+
+    /** @param list<string> $fechasYmd */
+    public function guardarConfiguracion(string $horaInicio, string $horaFin, string $diasAtencion, array $fechasYmd, array $mesesYm): void
+    {
+        $this->store->save([
+            'hora_inicio' => $horaInicio,
+            'hora_fin' => $horaFin,
+            'dias_atencion' => $diasAtencion,
+            'dias_off' => array_values(array_unique($fechasYmd)),
+            'meses_visibles' => array_values(array_unique($mesesYm)),
+        ]);
+    }
+
+    /** @return list<int> */
+    public function diasOffDelMes(int $anio, int $mes): array
+    {
+        $inicio = CarbonImmutable::create($anio, $mes, 1)->toDateString();
+        $fin = CarbonImmutable::create($anio, $mes, 1)->endOfMonth()->toDateString();
+
+        return collect($this->store->all()['dias_off'])
+            ->filter(fn (string $fecha) => $fecha >= $inicio && $fecha <= $fin)
+            ->map(fn (string $fecha) => (int) CarbonImmutable::parse($fecha)->day)
+            ->values()
+            ->all();
+    }
+
+    /** @return array<string, true> */
+    public function mesesVisiblesMapa(): array
+    {
+        return collect($this->store->all()['meses_visibles'])
+            ->mapWithKeys(fn (string $ym) => [$ym => true])
+            ->all();
     }
 
     public function duracionHoras(int $minutos): int
@@ -30,7 +61,6 @@ class AvailabilityService
         return max(1, (int) ceil($minutos / 60));
     }
 
-    // Esta función nos entrega los días de atención (lunes a viernes)
     /** @return list<int> */
     public function diasAtencion(): array
     {
@@ -41,7 +71,6 @@ class AvailabilityService
         return $dias ?: [2, 3, 4, 5, 6];
     }
 
-    // esta función nos dice si es un día de atención.
     public function esDiaAtencion(CarbonInterface|string $fecha): bool
     {
         $dia = $this->fecha($fecha);
@@ -52,7 +81,7 @@ class AvailabilityService
 
     public function esDiaOff(CarbonInterface|string $fecha): bool
     {
-        return DiaOff::query()->whereDate('fecha', $this->fecha($fecha)->toDateString())->exists();
+        return in_array($this->fecha($fecha)->toDateString(), $this->store->all()['dias_off'], true);
     }
 
     public function mesEsVisible(int $anio, int $mes): bool
@@ -72,27 +101,27 @@ class AvailabilityService
             return true;
         }
 
-        return MesVisible::query()->where('anio', $anio)->where('mes', $mes)->exists();
+        return isset($this->mesesVisiblesMapa()[sprintf('%04d-%02d', $anio, $mes)]);
     }
 
     /** @return list<array{anio: int, mes: int}> */
     public function mesesVisiblesCliente(): array
     {
         $actual = now()->startOfMonth();
-        $meses = collect([['anio' => $actual->year, 'mes' => $actual->month]])
+
+        return collect([['anio' => $actual->year, 'mes' => $actual->month]])
             ->concat(
-                MesVisible::query()
-                    ->orderBy('anio')
-                    ->orderBy('mes')
-                    ->get(['anio', 'mes'])
-                    ->map(fn (MesVisible $mes) => ['anio' => (int) $mes->anio, 'mes' => (int) $mes->mes])
+                collect($this->store->all()['meses_visibles'])->map(function (string $ym): array {
+                    [$anio, $mes] = array_map('intval', explode('-', $ym));
+
+                    return ['anio' => $anio, 'mes' => $mes];
+                })
             )
             ->filter(fn (array $mes) => CarbonImmutable::create($mes['anio'], $mes['mes'], 1)->greaterThanOrEqualTo($actual))
             ->unique(fn (array $mes) => sprintf('%04d-%02d', $mes['anio'], $mes['mes']))
             ->sortBy(fn (array $mes) => ($mes['anio'] * 12) + $mes['mes'])
-            ->values();
-
-        return $meses->all();
+            ->values()
+            ->all();
     }
 
     // Esta función genera los slots de atención para un día especifico
@@ -142,20 +171,16 @@ class AvailabilityService
         ));
     }
 
-    // Nos muestra los bloques dispoibles.
+    // Un bloque solo está libre si ninguna reserva pendiente/confirmada ocupa esas horas.
     public function bloqueDisponible(CarbonInterface|string $fecha, Servicio $servicio, string $horaInicio, ?int $exceptoId = null): bool
     {
         $reservas = $this->reservasDelDia($fecha, $exceptoId);
         $nuevo = $this->descriptorServicio($servicio, $horaInicio);
-        $inicio = $this->fecha($fecha)->setTimeFromTimeString($horaInicio);
+        $horasNuevas = $this->horasDescriptor($nuevo);
 
-        for ($indice = 0; $indice < $this->duracionHoras($servicio->duracion_min); $indice++) {
-            $hora = $inicio->addHours($indice)->format('H:i');
-            $ocupantes = $reservas->filter(
-                fn (array $reserva) => in_array($hora, $this->horasDescriptor($reserva), true)
-            )->values();
-
-            if (! $this->solapePermitido($ocupantes, $nuevo, $hora)) {
+        foreach ($reservas as $reserva) {
+            $horasOcupadas = $this->horasDescriptor($reserva);
+            if (array_intersect($horasNuevas, $horasOcupadas) !== []) {
                 return false;
             }
         }
@@ -229,23 +254,24 @@ class AvailabilityService
     private function reservasDelDia(CarbonInterface|string $fecha, ?int $exceptoId): Collection
     {
         return Reserva::query()
-            ->with('servicio.categoria')
+            ->with(['servicio.tipoServicio'])
             ->whereDate('fecha', $this->fecha($fecha)->toDateString())
-            ->whereIn('estado', ['pendiente', 'confirmada'])
+            ->conEstado(['pendiente', 'confirmada'])
             ->when($exceptoId, fn ($consulta) => $consulta->whereKeyNot($exceptoId))
             ->get()
-            ->map(fn (Reserva $reserva) => $this->descriptorServicio($reserva->servicio, substr($reserva->hora, 0, 5)));
+            ->filter(fn (Reserva $reserva) => $reserva->servicio !== null)
+            ->map(fn (Reserva $reserva) => $this->descriptorServicio($reserva->servicio, substr((string) $reserva->hora, 0, 5)));
     }
 
     /** @return array{hora: string, duracion_min: int, categoria_slug: string} */
     private function descriptorServicio(Servicio $servicio, string $hora): array
     {
-        $servicio->loadMissing('categoria');
+        $servicio->loadMissing('tipoServicio');
 
         return [
             'hora' => substr($hora, 0, 5),
             'duracion_min' => (int) $servicio->duracion_min,
-            'categoria_slug' => strtolower((string) $servicio->categoria?->slug),
+            'categoria_slug' => strtolower((string) ($servicio->tipoServicio?->slug ?? '')),
         ];
     }
 
@@ -262,44 +288,6 @@ class AvailabilityService
         }
 
         return $horas;
-    }
-
-    /** @param Collection<int, array{hora: string, duracion_min: int, categoria_slug: string}> $ocupantes
-     * @param  array{hora: string, duracion_min: int, categoria_slug: string}  $nuevo
-     */
-    private function solapePermitido(Collection $ocupantes, array $nuevo, string $hora): bool
-    {
-        if ($ocupantes->count() >= 2) {
-            return false;
-        }
-
-        if ($ocupantes->isEmpty()) {
-            return true;
-        }
-
-        $existente = $ocupantes->first();
-
-        return ($this->esCortoEnPose($nuevo) && $this->esHoraPoseColor($existente, $hora))
-            || ($this->esCortoEnPose($existente) && $this->esHoraPoseColor($nuevo, $hora));
-    }
-
-    /** @param array{hora: string, duracion_min: int, categoria_slug: string} $descriptor */
-    private function esCortoEnPose(array $descriptor): bool
-    {
-        return str_contains($descriptor['categoria_slug'], 'corte')
-            && $this->duracionHoras($descriptor['duracion_min']) === 1;
-    }
-
-    /** @param array{hora: string, duracion_min: int, categoria_slug: string} $descriptor */
-    private function esHoraPoseColor(array $descriptor, string $hora): bool
-    {
-        $bloques = $this->duracionHoras($descriptor['duracion_min']);
-        $horas = $this->horasDescriptor($descriptor);
-
-        return str_contains($descriptor['categoria_slug'], 'color')
-            && $bloques >= 3
-            && $bloques <= 5
-            && end($horas) === substr($hora, 0, 5);
     }
 
     private function fecha(CarbonInterface|string $fecha): CarbonImmutable

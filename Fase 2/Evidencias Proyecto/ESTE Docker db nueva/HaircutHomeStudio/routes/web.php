@@ -7,11 +7,14 @@ use App\Http\Controllers\Admin\HoursController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SolicitudController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AiStudioController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\StaffWelcomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -25,7 +28,14 @@ Route::middleware('guest')->group(function (): void {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-Route::middleware(['auth', 'role:cliente,admin'])->group(function (): void {
+Route::middleware('auth')->group(function (): void {
+    Route::get('/mi-perfil', [ProfileController::class, 'edit'])->name('perfil.edit');
+    Route::put('/mi-perfil', [ProfileController::class, 'update'])->name('perfil.update');
+});
+
+Route::get('/bienvenida', StaffWelcomeController::class)->middleware('auth')->name('staff.welcome');
+
+Route::middleware(['auth', 'role:cliente'])->group(function (): void {
     Route::get('/simulador', [AiStudioController::class, 'index'])->name('ai.index');
     Route::post('/simulador', [AiStudioController::class, 'store'])->middleware('throttle:ai-generations')->name('ai.store');
     Route::get('/simulador/{generation}', [AiStudioController::class, 'show'])->name('ai.show');
@@ -61,6 +71,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/catalogo', [CatalogController::class, 'store'])->name('catalogo.store');
     Route::put('/catalogo/{producto}', [CatalogController::class, 'update'])->name('catalogo.update');
     Route::delete('/catalogo/{producto}', [CatalogController::class, 'destroy'])->name('catalogo.destroy');
+
+    Route::get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
+    Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store');
+    Route::put('/usuarios/{usuario}', [UserController::class, 'update'])->name('usuarios.update');
+    Route::delete('/usuarios/{usuario}', [UserController::class, 'destroy'])->name('usuarios.destroy');
 });
 
 Route::middleware(['auth', 'role:peluquero'])->prefix('admin')->name('peluquero.')->group(function (): void {

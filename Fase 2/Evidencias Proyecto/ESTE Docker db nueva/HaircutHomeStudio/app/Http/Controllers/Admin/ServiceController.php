@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Categoria;
 use App\Models\Servicio;
+use App\Models\TipoServicio;
 use App\Services\MediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,12 +20,12 @@ class ServiceController extends Controller
     public function index(Request $request): View
     {
         $categoriaId = $request->integer('cat');
-        $categorias = Categoria::query()->withCount('servicios')->orderBy('id')->get();
+        $categorias = TipoServicio::query()->withCount('servicios')->orderBy('id_tipo_servicio')->get();
         $servicios = Servicio::query()
             ->with('categoria')
-            ->when($categoriaId > 0, fn ($query) => $query->where('categoria_id', $categoriaId))
-            ->orderBy('categoria_id')
-            ->orderBy('id')
+            ->when($categoriaId > 0, fn ($query) => $query->where('id_tipo_servicio', $categoriaId))
+            ->orderBy('id_tipo_servicio')
+            ->orderBy('id_servicio')
             ->get();
 
         return view('admin.servicios.index', compact('categorias', 'servicios', 'categoriaId'));
@@ -39,12 +39,12 @@ class ServiceController extends Controller
         ]);
         $slug = Str::slug($datos['nombre']);
 
-        if ($slug === '' || Categoria::query()->where('slug', $slug)->exists()) {
+        if ($slug === '' || TipoServicio::query()->where('slug', $slug)->exists()) {
             return back()->withInput()->with('error', 'No se pudo crear la categoría (¿nombre repetido?).');
         }
 
-        Categoria::create([
-            'nombre' => trim($datos['nombre']),
+        TipoServicio::create([
+            'tipo_servicio' => trim($datos['nombre']),
             'slug' => $slug,
             'imagen' => $this->media->store($request->file('imagen'), 'cat_'),
         ]);
@@ -52,22 +52,19 @@ class ServiceController extends Controller
         return back()->with('success', 'Categoría creada.');
     }
 
-    public function destroyCategory(Categoria $categoria): RedirectResponse
+    public function destroyCategory(TipoServicio $categoria): RedirectResponse
     {
-        if (Categoria::query()->count() <= 1) {
+        if (TipoServicio::query()->count() <= 1) {
             return back()->with('error', 'Debe quedar al menos una categoría.');
         }
 
-        $tieneReservas = $categoria->servicios()->whereHas('reservas')->exists();
+        $tieneReservas = $categoria->servicios()->whereHas('detalleReservas')->exists();
         if ($tieneReservas) {
             return back()->with('error', 'No se puede eliminar: hay reservas en servicios de esa categoría.');
         }
 
-        if ($categoria->productos()->exists()) {
-            return back()->with('error', 'No se puede eliminar: hay productos asociados a esa categoría.');
-        }
-
         $imagenes = $categoria->servicios()->pluck('imagen')->filter()->all();
+        $imagenCategoria = $categoria->imagen;
         DB::transaction(function () use ($categoria): void {
             $categoria->servicios()->delete();
             $categoria->delete();
@@ -76,7 +73,7 @@ class ServiceController extends Controller
         foreach ($imagenes as $imagen) {
             $this->media->delete($imagen);
         }
-        $this->media->delete($categoria->imagen);
+        $this->media->delete($imagenCategoria);
 
         return redirect()->route('admin.servicios.index')->with('success', 'Categoría eliminada.');
     }
@@ -84,10 +81,16 @@ class ServiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $datos = $this->validarServicio($request);
-        $datos['precio_desde'] = $request->boolean('precio_desde');
-        $datos['imagen'] = $this->media->store($request->file('imagen'), 'serv_');
-        $datos['activo'] = true;
-        Servicio::create($datos);
+
+        Servicio::create([
+            'nombre_servicio' => $datos['nombre'],
+            'descripcion' => $datos['descripcion'] ?: 'Servicio de Haircut Home Studio.',
+            'duracion_min' => $datos['duracion_min'],
+            'precio' => $datos['precio'],
+            'id_tipo_servicio' => $datos['categoria_id'],
+            'imagen' => $this->media->store($request->file('imagen'), 'serv_'),
+            'disponibilidad' => true,
+        ]);
 
         return $this->volver($request)->with('success', 'Servicio agregado.');
     }
@@ -95,14 +98,21 @@ class ServiceController extends Controller
     public function update(Request $request, Servicio $servicio): RedirectResponse
     {
         $datos = $this->validarServicio($request);
-        $datos['precio_desde'] = $request->boolean('precio_desde');
-        $datos['activo'] = $request->boolean('activo');
+        $payload = [
+            'nombre_servicio' => $datos['nombre'],
+            'descripcion' => $datos['descripcion'] ?: 'Servicio de Haircut Home Studio.',
+            'duracion_min' => $datos['duracion_min'],
+            'precio' => $datos['precio'],
+            'id_tipo_servicio' => $datos['categoria_id'],
+            'disponibilidad' => $request->boolean('activo'),
+        ];
+
         $imagenAnterior = $servicio->imagen;
         $imagenNueva = $this->media->store($request->file('imagen'), 'serv_');
         if ($imagenNueva) {
-            $datos['imagen'] = $imagenNueva;
+            $payload['imagen'] = $imagenNueva;
         }
-        $servicio->update($datos);
+        $servicio->update($payload);
 
         if ($imagenNueva) {
             $this->media->delete($imagenAnterior);
@@ -113,7 +123,7 @@ class ServiceController extends Controller
 
     public function destroy(Request $request, Servicio $servicio): RedirectResponse
     {
-        if ($servicio->reservas()->exists()) {
+        if ($servicio->detalleReservas()->exists()) {
             return $this->volver($request)->with('error', 'No se puede borrar: hay reservas asociadas. Desactívalo en su lugar.');
         }
 
@@ -128,9 +138,9 @@ class ServiceController extends Controller
     private function validarServicio(Request $request): array
     {
         return $request->validate([
-            'categoria_id' => ['required', 'integer', Rule::exists('categorias', 'id')],
+            'categoria_id' => ['required', 'integer', Rule::exists('TIPO_SERVICIO', 'id_tipo_servicio')],
             'nombre' => ['required', 'string', 'max:120'],
-            'descripcion' => ['nullable', 'string'],
+            'descripcion' => ['nullable', 'string', 'max:200'],
             'duracion_min' => ['required', 'integer', 'min:60', 'max:600'],
             'precio' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'precio_desde' => ['sometimes', 'boolean'],

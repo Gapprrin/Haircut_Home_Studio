@@ -40,7 +40,7 @@ class AvailabilityServiceTest extends TestCase
         $this->assertSame(['10:30', '11:30', '12:30', '13:30'], $slots);
     }
 
-    public function test_one_hour_cut_can_overlap_only_the_last_hour_of_a_long_color(): void
+    public function test_reserved_hours_block_any_other_person(): void
     {
         Carbon::setTestNow('2026-09-10 09:00:00');
         $configuracion = Configuracion::create([
@@ -64,7 +64,7 @@ class AvailabilityServiceTest extends TestCase
 
         $this->assertNotContains('10:30', $slots);
         $this->assertNotContains('11:30', $slots);
-        $this->assertContains('12:30', $slots);
+        $this->assertNotContains('12:30', $slots);
     }
 
     public function test_days_off_have_no_available_slots(): void

@@ -2,15 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Reserva extends Model
 {
     public const CREATED_AT = 'fecha_creacion_reserva';
 
     public const UPDATED_AT = null;
+
+    /** @var array<string, string> */
+    public const ESTADOS_UI = [
+        'En aprovación' => 'pendiente',
+        'Agendada' => 'confirmada',
+        'Rechazada' => 'rechazada',
+        'Cancelada' => 'cancelada',
+        'Realizada' => 'realizada',
+        'No asistió' => 'no_asistio',
+    ];
 
     protected $primaryKey = 'id_reserva';
 
@@ -19,6 +33,8 @@ class Reserva extends Model
     protected $fillable = ['hora', 'fecha', 'foto', 'imagen_simulada', 'id_usuario', 'id_estado_reserva', 'id_tipo_reserva'];
 
     protected $hidden = ['imagen_simulada'];
+
+    protected $appends = ['estado', 'lugar', 'servicio_id'];
 
     protected function casts(): array
     {
@@ -46,6 +62,77 @@ class Reserva extends Model
     public function detallesReserva(): HasMany
     {
         return $this->hasMany(DetalleReserva::class, 'id_reserva');
+    }
+
+    public function detalleReserva(): HasOne
+    {
+        return $this->hasOne(DetalleReserva::class, 'id_reserva');
+    }
+
+    public function servicio(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Servicio::class,
+            DetalleReserva::class,
+            'id_reserva',
+            'id_servicio',
+            'id_reserva',
+            'id_servicio',
+        );
+    }
+
+    protected function estado(): Attribute
+    {
+        return Attribute::get(function (): string {
+            $nombre = $this->estadoReserva?->estado_reserva;
+
+            return self::ESTADOS_UI[$nombre] ?? strtolower((string) $nombre);
+        });
+    }
+
+    protected function lugar(): Attribute
+    {
+        return Attribute::get(function (): string {
+            $tipo = strtolower((string) ($this->tipoReserva?->tipo_reserva ?? ''));
+
+            return str_contains($tipo, 'domicilio') ? 'domicilio' : 'salon';
+        });
+    }
+
+    protected function servicioId(): Attribute
+    {
+        return Attribute::get(fn (): ?int => $this->detalleReserva?->id_servicio);
+    }
+
+    public function scopeConEstado(Builder $query, string|array $estadosUi): Builder
+    {
+        $estadosUi = (array) $estadosUi;
+        $nombres = array_keys(array_filter(
+            self::ESTADOS_UI,
+            fn (string $ui) => in_array($ui, $estadosUi, true),
+        ));
+
+        return $query->whereHas('estadoReserva', fn (Builder $estado) => $estado->whereIn('estado_reserva', $nombres));
+    }
+
+    public static function idEstadoUi(string $estadoUi): ?int
+    {
+        $nombre = array_search($estadoUi, self::ESTADOS_UI, true);
+        if ($nombre === false) {
+            return null;
+        }
+
+        return EstadoReserva::query()->where('estado_reserva', $nombre)->value('id_estado_reserva');
+    }
+
+    public function asignarEstadoUi(string $estadoUi): bool
+    {
+        $id = self::idEstadoUi($estadoUi);
+        if ($id === null) {
+            return false;
+        }
+
+        return $this->update(['id_estado_reserva' => $id]);
     }
 
     public function puedeCancelar(): bool

@@ -100,10 +100,9 @@ class AuthController extends Controller
     private function inicioPara(User $usuario): string
     {
         return match (strtolower((string) $usuario->rol?->rol)) {
-            'Admin' => route('admin.servicios.index'),
-            'Peluquero' => route('peluquero.dashboard'),
-            'Cliente' => route('home'),
-            'CliAdmin' => route('home'),
+            'admin' => route('admin.servicios.index'),
+            'peluquero' => route('peluquero.dashboard'),
+            'cliente', 'cliadmin' => route('home'),
             default => route('home'),
         };
     }

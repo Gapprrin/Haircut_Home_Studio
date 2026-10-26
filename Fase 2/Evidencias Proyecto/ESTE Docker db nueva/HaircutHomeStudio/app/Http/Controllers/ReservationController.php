@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiGeneration;
-use App\Models\TipoServicio;
+use App\Models\DetalleReserva;
 use App\Models\Reserva;
 use App\Models\Servicio;
+use App\Models\TipoServicio;
 use App\Services\AvailabilityService;
 use App\Services\ReservationWorkflowService;
 use Carbon\CarbonImmutable;
@@ -28,15 +29,19 @@ class ReservationController extends Controller
         private readonly ReservationWorkflowService $workflow,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($request->user()?->esStaff()) {
+            return redirect()->route('staff.welcome');
+        }
+
         $this->workflow->actualizarRealizadas();
 
         $reservas = Reserva::query()
-            ->with('id_servicio')
+            ->with(['servicio', 'estadoReserva', 'tipoReserva'])
             ->where('id_usuario', $request->user()->id_usuario)
             ->whereHas('estadoReserva', function ($query) {
-                $query->whereNotIn('estado_reserva', ['Cancelada', 'No Asistió']);
+                $query->whereNotIn('estado_reserva', ['Cancelada', 'No asistió']);
             })
             ->orderByDesc('fecha')
             ->orderByDesc('hora')
@@ -47,24 +52,31 @@ class ReservationController extends Controller
 
     public function create(Request $request): View|RedirectResponse
     {
-        // Obtiene todos los tipos de servicios y los servicios asociados que estén disponibles.
-        $tiposDeServicios = TipoServicio::query()
+        if ($request->user()?->esStaff()) {
+            return redirect()->route('staff.welcome');
+        }
+
+        $categorias = TipoServicio::query()
             ->with(['servicios' => fn ($query) => $query->where('disponibilidad', true)->orderBy('id_servicio')])
             ->orderBy('id_tipo_servicio')
             ->get()
-            ->filter(fn (TipoServicio $tipoServicio) => $tipoServicio->servicios->isNotEmpty())
+            ->filter(fn (TipoServicio $tipo) => $tipo->servicios->isNotEmpty())
             ->values();
 
-        // Acá no sé que hace xdd, pero creo que asigna un valor a la URL o la obtiene de ahí con los slugs
-        $servicio = Servicio::query()->with('tipoServicio')->where('disponibilidad', true)->find($request->integer('serv'));
-        $tipoServicio = $tiposDeServicios->firstWhere('slug', $request->string('cat')->toString())
-            ?? ($servicio ? $tiposDeServicios->firstWhere('id_tipo_servicio', $servicio->id_tipo_servicio) : null)
-            ?? $tiposDeServicios->first();
-        $servicio = $servicio && $servicio->id_tipo_servicio === $tipoServicio?->id_tipo_servicio
-            ? $servicio
-            : $tipoServicio?->servicios->first();
+        $servicio = Servicio::query()
+            ->with('tipoServicio')
+            ->where('disponibilidad', true)
+            ->find($request->integer('serv'));
 
-        if (! $tipoServicio || ! $servicio) {
+        $categoria = $categorias->firstWhere('slug', $request->string('cat')->toString())
+            ?? ($servicio ? $categorias->firstWhere('id_tipo_servicio', $servicio->id_tipo_servicio) : null)
+            ?? $categorias->first();
+
+        $servicio = $servicio && $servicio->id_tipo_servicio === $categoria?->id_tipo_servicio
+            ? $servicio
+            : $categoria?->servicios->first();
+
+        if (! $categoria || ! $servicio) {
             return redirect()->route('home')->with('error', 'Elige un servicio para continuar.');
         }
 
@@ -100,8 +112,8 @@ class ReservationController extends Controller
         $aiGeneration = $this->selectedAiGeneration($request);
 
         return view('reservas.create', [
-            'tiposDeServicios' => $tiposDeServicios,
-            'tipoServicio' => $tipoServicio,
+            'categorias' => $categorias,
+            'categoria' => $categoria,
             'servicio' => $servicio,
             'anio' => $anio,
             'mes' => $mes,
@@ -120,8 +132,12 @@ class ReservationController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->user()?->esStaff()) {
+            return redirect()->route('staff.welcome');
+        }
+
         $datos = $request->validate([
-            'servicio_id' => ['required', 'integer', Rule::exists('servicios', 'id')->where('activo', true)],
+            'servicio_id' => ['required', 'integer', Rule::exists('SERVICIO', 'id_servicio')->where('disponibilidad', true)],
             'fecha' => ['required', 'date_format:Y-m-d'],
             'hora' => ['required', 'date_format:H:i'],
             'lugar' => ['required', Rule::in(['salon', 'domicilio'])],
@@ -133,7 +149,7 @@ class ReservationController extends Controller
             'foto.max' => 'La foto no puede superar 3 MB.',
         ]);
 
-        $servicio = Servicio::query()->with('categoria')->findOrFail($datos['servicio_id']);
+        $servicio = Servicio::query()->with('tipoServicio')->findOrFail($datos['servicio_id']);
         $foto = null;
         $imagenSimulada = null;
 
@@ -148,7 +164,7 @@ class ReservationController extends Controller
                 if (! empty($datos['ai_generation_id'])) {
                     $aiGeneration = AiGeneration::query()
                         ->whereKey($datos['ai_generation_id'])
-                        ->where('usuario_id', $request->user()->id)
+                        ->where('id_usuario', $request->user()->id_usuario)
                         ->where('status', 'completed')
                         ->where('expires_at', '>', now())
                         ->lockForUpdate()
@@ -175,15 +191,21 @@ class ReservationController extends Controller
                     $foto = null;
                     throw ValidationException::withMessages(['foto' => 'No fue posible guardar la foto. Intenta nuevamente.']);
                 }
-                Reserva::create([
-                    'usuario_id' => $request->user()->id,
-                    'servicio_id' => $servicio->id,
+
+                $reserva = Reserva::create([
+                    'id_usuario' => $request->user()->id_usuario,
                     'fecha' => $datos['fecha'],
-                    'hora' => $datos['hora'],
+                    'hora' => $datos['hora'].':00',
                     'foto' => $foto,
                     'imagen_simulada' => $imagenSimulada,
-                    'lugar' => $datos['lugar'],
-                    'estado' => 'pendiente',
+                    'id_estado_reserva' => 1,
+                    'id_tipo_reserva' => $datos['lugar'] === 'domicilio' ? 2 : 1,
+                ]);
+
+                DetalleReserva::create([
+                    'id_reserva' => $reserva->id_reserva,
+                    'id_servicio' => $servicio->id_servicio,
+                    'monto_total' => $servicio->precio,
                 ]);
             });
         } catch (DomainException) {
@@ -200,7 +222,7 @@ class ReservationController extends Controller
 
     public function cancel(Request $request, Reserva $reserva): RedirectResponse
     {
-        if ($reserva->usuario_id !== $request->user()->id) {
+        if ($reserva->id_usuario !== $request->user()->id_usuario) {
             abort(404);
         }
 
@@ -208,14 +230,16 @@ class ReservationController extends Controller
             return back()->with('error', 'Ya no se puede cancelar.');
         }
 
-        $reserva->update(['estado' => 'cancelada']);
+        $reserva->update(['id_estado_reserva' => 4]);
 
         return back()->with('success', 'Reserva cancelada. El cupo quedó libre.');
     }
 
     public function simulatedImage(Request $request, Reserva $reserva): Response
     {
-        abort_unless($reserva->usuario_id === $request->user()->id || $request->user()->esPeluquero(), 404);
+        $esDueno = $reserva->id_usuario === $request->user()->id_usuario;
+        $esStaff = in_array(strtolower((string) $request->user()->rol?->rol), ['peluquero', 'admin'], true);
+        abort_unless($esDueno || $esStaff, 404);
         abort_unless($reserva->imagen_simulada && Storage::disk('local')->exists($reserva->imagen_simulada), 404);
 
         $bytes = Storage::disk('local')->get($reserva->imagen_simulada);
@@ -257,7 +281,7 @@ class ReservationController extends Controller
 
         $generation = AiGeneration::query()
             ->whereKey($request->integer('ai_generation'))
-            ->where('usuario_id', $request->user()->id)
+            ->delUsuario($request->user())
             ->where('status', 'completed')
             ->where('expires_at', '>', now())
             ->first();

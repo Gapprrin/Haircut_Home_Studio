@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -72,4 +73,36 @@ class User extends Authenticatable
     {
         return 'contrasenia';
     }
+
+    protected function nombre(): Attribute
+    {
+        return Attribute::get(fn (): string => (string) $this->nombre_usuario);
+    }
+
+    public function nombreRol(): string
+    {
+        return strtolower((string) ($this->rol?->rol ?? ''));
+    }
+
+    public function esAdmin(): bool
+    {
+        return $this->nombreRol() === 'admin';
+    }
+
+    public function esPeluquero(): bool
+    {
+        return $this->nombreRol() === 'peluquero';
+    }
+
+    public function esStaff(): bool
+    {
+        return in_array($this->nombreRol(), ['admin', 'peluquero'], true);
+    }
+
+    /** El esquema actual no tiene esta columna; se mantiene para no romper cuotas/AI. */
+    protected function aiSinLimite(): Attribute
+    {
+        return Attribute::get(fn (): bool => false);
+    }
 }
+

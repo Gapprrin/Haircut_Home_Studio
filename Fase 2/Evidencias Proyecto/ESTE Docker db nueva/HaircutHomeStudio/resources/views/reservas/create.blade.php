@@ -169,9 +169,9 @@
             @endif
             <div class="book-card"><div class="book-photo" id="book-photo">
                 <input class="book-photo-input" type="file" id="book-foto" name="foto" accept="image/jpeg,image/png,image/webp,image/gif">
-                <button type="button" class="book-photo-drop" id="book-photo-drop" aria-controls="book-foto"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o toca para elegir · JPG, PNG, WEBP o GIF · máx. 3 MB</span></button>
+                <label class="book-photo-drop" for="book-foto" id="book-photo-drop"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o tócala para elegir · JPG, PNG o WEBP</span></label>
                 <div class="book-photo-preview" id="book-photo-preview" hidden><img alt="Vista previa de la imagen"><button type="button" class="book-photo-clear" id="book-photo-clear" aria-label="Quitar imagen">&times;</button></div>
-                <p class="book-photo-msg" id="book-photo-msg" role="alert" hidden></p>
+                <p class="book-photo-msg" id="book-photo-msg" hidden></p>
             </div></div>
             <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="fecha">← Atrás</button><button type="button" class="book-step-next" data-book-next="lugar">Siguiente <span aria-hidden="true">→</span></button></div>
         </section>

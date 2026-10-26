@@ -19,12 +19,12 @@ class HoursController extends Controller
     {
         $this->workflow->actualizarRealizadas();
         $citas = Reserva::query()
-            ->with(['usuario', 'servicio'])
+            ->with(['usuario', 'servicio', 'estadoReserva', 'tipoReserva', 'detalleReserva'])
             ->whereDate('fecha', '>=', now()->toDateString())
-            ->whereIn('estado', ['confirmada', 'realizada'])
+            ->conEstado(['confirmada', 'realizada'])
             ->orderBy('fecha')
             ->orderBy('hora')
-            ->orderBy('id')
+            ->orderBy('id_reserva')
             ->get();
 
         $porDia = [];
@@ -34,10 +34,13 @@ class HoursController extends Controller
                 if ($reserva->fecha->isFuture() && $reserva->estado === 'realizada') {
                     continue;
                 }
+                if ($reserva->servicio === null) {
+                    continue;
+                }
                 $inicio = CarbonImmutable::instance($reserva->fecha)->setTimeFromTimeString($reserva->hora);
                 $fin = $inicio->addMinutes(max(60, $reserva->servicio->duracion_min));
                 $items[] = [
-                    'ids' => [$reserva->id],
+                    'ids' => [$reserva->getKey()],
                     'cliente' => $reserva->usuario->nombre,
                     'servicio' => $reserva->servicio->nombre,
                     'lugar' => $reserva->lugar,
@@ -62,12 +65,16 @@ class HoursController extends Controller
         $datos = $request->validate([
             'accion' => ['required', Rule::in(['borrar', 'noshow'])],
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', Rule::exists('reservas', 'id')],
+            'ids.*' => ['integer', Rule::exists('RESERVA', 'id_reserva')],
         ]);
-        $estado = $datos['accion'] === 'noshow' ? 'no_asistio' : 'cancelada';
-        Reserva::query()->whereKey($datos['ids'])->whereIn('estado', ['confirmada', 'realizada'])->update(['estado' => $estado]);
+        $estadoUi = $datos['accion'] === 'noshow' ? 'no_asistio' : 'cancelada';
+        $idEstado = Reserva::idEstadoUi($estadoUi);
+        Reserva::query()
+            ->whereKey($datos['ids'])
+            ->conEstado(['confirmada', 'realizada'])
+            ->update(['id_estado_reserva' => $idEstado]);
 
-        return back()->with('success', $estado === 'no_asistio'
+        return back()->with('success', $estadoUi === 'no_asistio'
             ? 'Marcada como no llegó. Queda en el informe.'
             : 'Hora quitada de la agenda.');
     }
