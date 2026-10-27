@@ -1,5 +1,5 @@
 @props(['product'])
-@php($imageUrl = app(\App\Services\MediaService::class)->url($product->imagen))
+@php($imageUrl = app(\App\Services\MediaService::class)->urlProducto($product->imagen, $product->categoria?->nombre, $product->producto))
 <article {{ $attributes->class(['product-card']) }}>
     <div class="product-photo">
         @if($imageUrl)

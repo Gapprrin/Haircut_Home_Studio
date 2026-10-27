@@ -14,7 +14,10 @@
             <tbody>
             @foreach($solicitudes as $solicitud)
                 @php
-                    $fotoUrl = $solicitud->foto ? $media->url($solicitud->foto) : null;
+                    $fotoUrls = array_values(array_filter(array_map(
+                        fn (string $ruta) => $media->url($ruta),
+                        $solicitud->rutasFoto(),
+                    )));
                     $simUrl = $solicitud->imagen_simulada ? route('reservas.simulated-image', $solicitud) : null;
                     $cliente = $solicitud->usuario->nombre;
                 @endphp
@@ -24,20 +27,20 @@
                     <td data-label="Lugar">{{ \App\Support\Format::lugar($solicitud->lugar) }}</td>
                     <td data-label="Fecha / Hora">{{ $solicitud->fecha->format('d/m') }} · {{ substr($solicitud->hora, 0, 5) }}</td>
                     <td data-label="Foto">
-                        @if($fotoUrl)
-                            <button type="button" class="linkish" data-gallery-open data-gallery-src="{{ $fotoUrl }}" data-gallery-alt="Referencia de {{ $cliente }}" data-no-loader>Referencia</button>
-                        @endif
+                        @foreach($fotoUrls as $i => $fotoUrl)
+                            <button type="button" class="linkish" data-gallery-open data-gallery-src="{{ $fotoUrl }}" data-gallery-alt="Referencia {{ $i + 1 }} de {{ $cliente }}" data-no-loader>Referencia {{ count($fotoUrls) > 1 ? $i + 1 : '' }}</button>
+                        @endforeach
                         @if($simUrl)
                             <button type="button" class="linkish" data-gallery-open data-gallery-src="{{ $simUrl }}" data-gallery-alt="Simulación IA de {{ $cliente }}" data-no-loader>Simulación IA</button>
                         @endif
-                        @if(!$fotoUrl && !$simUrl)
+                        @if($fotoUrls === [] && ! $simUrl)
                             <span class="hint">(sin foto)</span>
                         @endif
                     </td>
                     <td data-label="Acción">
                         <div class="actions">
                             <form method="post" action="{{ route('peluquero.solicitudes.update', $solicitud) }}">@csrf @method('PATCH')<input type="hidden" name="accion" value="confirmar"><button type="submit" class="btn-primary">Confirmar</button></form>
-                            <form method="post" action="{{ route('peluquero.solicitudes.update', $solicitud) }}">@csrf @method('PATCH')<input type="hidden" name="accion" value="rechazar"><button type="submit" class="btn-secondary">Rechazar</button></form>
+                            <form method="post" action="{{ route('peluquero.solicitudes.update', $solicitud) }}" data-confirm="¿Seguro que quiere cancelar esta solicitud?" data-confirm-title="Cancelar">@csrf @method('PATCH')<input type="hidden" name="accion" value="rechazar"><button type="submit" class="btn-secondary">Rechazar</button></form>
                         </div>
                     </td>
                 </tr>

@@ -88,14 +88,16 @@ class ReservationFlowTest extends TestCase
         Storage::fake('public');
         $payload = $this->photoReservationPayload();
         $photo = UploadedFile::fake()->createWithContent('reference.png', file_get_contents(public_path('img/favicon.png')))->size(3072);
-        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['foto' => $photo])
+        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['fotos' => [$photo]])
             ->assertSessionHasNoErrors()->assertRedirect(route('reservas.index'));
         $reservation = Reserva::firstOrFail();
         $this->assertNotNull($reservation->foto);
-        Storage::disk('public')->assertExists($reservation->foto);
-        $this->assertSame(file_get_contents($photo->getRealPath()), Storage::disk('public')->get($reservation->foto));
+        $ruta = $reservation->rutasFoto()[0] ?? null;
+        $this->assertNotNull($ruta);
+        Storage::disk('public')->assertExists($ruta);
+        $this->assertSame(file_get_contents($photo->getRealPath()), Storage::disk('public')->get($ruta));
         $this->actingAs(User::factory()->create(['rol' => 'peluquero']))
-            ->get(route('peluquero.solicitudes.index'))->assertOk()->assertSee($reservation->foto);
+            ->get(route('peluquero.solicitudes.index'))->assertOk()->assertSee($ruta);
     }
 
     public function test_invalid_and_oversized_reference_photos_are_rejected_without_a_reservation(): void
@@ -104,7 +106,7 @@ class ReservationFlowTest extends TestCase
         $payload = $this->photoReservationPayload();
         $this->actingAs(User::factory()->create());
         foreach ([UploadedFile::fake()->create('reference.pdf', 10, 'application/pdf'), UploadedFile::fake()->createWithContent('large.png', file_get_contents(public_path('img/favicon.png')))->size(3073)] as $photo) {
-            $this->post(route('reservas.store'), $payload + ['foto' => $photo])->assertSessionHasErrors('foto');
+            $this->post(route('reservas.store'), $payload + ['fotos' => [$photo]])->assertSessionHasErrors('fotos.0');
         }
         $this->assertSame(0, Reserva::count());
         $this->assertSame([], Storage::disk('public')->allFiles());
@@ -114,11 +116,11 @@ class ReservationFlowTest extends TestCase
     {
         $payload = $this->photoReservationPayload();
         $disk = Mockery::mock(FilesystemAdapter::class);
-        $disk->shouldReceive('putFileAs')->once()->andReturn(false);
+        $disk->shouldReceive('putFile')->once()->andReturn(false);
         Storage::shouldReceive('disk')->with('public')->andReturn($disk);
         $photo = UploadedFile::fake()->createWithContent('reference.png', file_get_contents(public_path('img/favicon.png')));
-        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['foto' => $photo])
-            ->assertSessionHasErrors('foto');
+        $this->actingAs(User::factory()->create())->post(route('reservas.store'), $payload + ['fotos' => [$photo]])
+            ->assertSessionHasErrors('fotos');
         $this->assertSame(0, Reserva::count());
     }
 

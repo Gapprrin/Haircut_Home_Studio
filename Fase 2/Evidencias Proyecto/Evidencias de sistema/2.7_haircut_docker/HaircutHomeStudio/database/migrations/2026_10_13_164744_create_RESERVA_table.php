@@ -15,7 +15,7 @@ return new class extends Migration
             $table->integer('id_reserva', true);
             $table->time('hora');
             $table->date('fecha');
-            $table->date('imagen_simulada')->nullable();
+            $table->string('imagen_simulada', 255)->nullable();
             $table->timestamp('fecha_creacion_reserva')->nullable()->useCurrent();
             $table->string('foto')->nullable();
             $table->integer('id_usuario')->index('fk_reserva_usuario');

@@ -3,17 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class StaffWelcomeController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request)
     {
         $usuario = $request->user();
-        $rol = strtolower((string) ($usuario?->rol?->rol ?? ''));
+        if (! $usuario?->esStaff()) {
+            return redirect()->route('home');
+        }
+
+        $rol = strtolower((string) ($usuario->rol?->rol ?? ''));
 
         return view('staff.welcome', [
-            'nombre' => $usuario?->nombre_usuario ?: 'usuario',
+            'nombre' => $usuario->nombre_usuario ?: 'usuario',
             'rol' => $rol,
         ]);
     }

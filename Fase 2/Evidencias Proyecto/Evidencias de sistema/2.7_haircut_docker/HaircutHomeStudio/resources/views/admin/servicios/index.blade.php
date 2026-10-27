@@ -24,7 +24,7 @@
             <div class="catalog-add-form">
                 <p class="avail-label">Eliminar categoría</p>
                 @foreach($categorias as $categoria)
-                    <form method="post" action="{{ route('admin.categorias.destroy', $categoria) }}" class="actions" onsubmit="return confirm('¿Eliminar esta categoría y sus tipos de servicio?');">
+                    <form method="post" action="{{ route('admin.categorias.destroy', $categoria) }}" class="actions" data-confirm="¿Seguro que quiere eliminar esta categoría y sus tipos de servicio?" data-confirm-title="Eliminar">
                         @csrf @method('DELETE')
                         <span>{{ $categoria->nombre }} ({{ $categoria->servicios_count }})</span>
                         <button type="submit" class="btn btn-secondary">Eliminar</button>
@@ -74,7 +74,7 @@
                         <div class="catalog-row-status" data-label="Estado"><span class="catalog-badge {{ $servicio->activo ? 'is-on' : 'is-off' }}">{{ $servicio->activo ? 'Visible' : 'Oculto' }}</span></div>
                         <div class="catalog-row-actions">
                             <button type="button" class="catalog-icon-btn is-edit" data-panel-toggle="service-edit-{{ $servicio->id }}" aria-expanded="false" title="Editar">✎ <span>Editar</span></button>
-                            <form method="post" action="{{ route('admin.servicios.destroy', $servicio) }}" onsubmit="return confirm('¿Eliminar este servicio?');">@csrf @method('DELETE')<input type="hidden" name="volver_cat" value="{{ $categoriaId }}"><button type="submit" class="catalog-icon-btn is-delete" title="Eliminar">× <span>Eliminar</span></button></form>
+                            <form method="post" action="{{ route('admin.servicios.destroy', $servicio) }}" data-confirm="¿Seguro que quiere eliminar este servicio?" data-confirm-title="Eliminar">@csrf @method('DELETE')<input type="hidden" name="volver_cat" value="{{ $categoriaId }}"><button type="submit" class="catalog-icon-btn is-delete" title="Eliminar">× <span>Eliminar</span></button></form>
                         </div>
                     </div>
                     <div class="catalog-row-edit" id="service-edit-{{ $servicio->id }}" hidden>

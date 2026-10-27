@@ -55,6 +55,9 @@
         <div class="home-products-foot"><a href="{{ route('productos.index') }}" class="btn btn-primary">Ver más productos</a></div>
     </section>
 
+    @php
+        $reviewsMapsUrl = 'https://www.google.com/maps/place/HairCut+Home+Studio/@-33.6828171,-71.1894721,17z/data=!3m1!4b1!4m6!3m5!1s0x9662ff607ff20d81:0xafcf5d95bed90e7c!8m2!3d-33.6828171!4d-71.1894721!16s%2Fg%2F11hcyscny1?entry=ttu&g_ep=EgoyMDI2MTAyMC4wIKXMDSoASAFQAw%3D%3D';
+    @endphp
     <section class="home-reviews" id="reseñas">
         <div class="home-reviews-head">
             <div class="home-reviews-intro">
@@ -62,27 +65,27 @@
                 <h2>¿Por qué nos eligen?</h2>
                 <p>Nos esforzamos por crear un espacio libre de estrés, con atención cercana y resultados que te hagan sentir bien contigo misma.</p>
             </div>
-            <div class="home-reviews-badge" aria-label="Valoración 4,6 de 5 en Google con 25 reseñas">
+            <a href="{{ $reviewsMapsUrl }}" class="home-reviews-badge" target="_blank" rel="noopener" aria-label="Abrir reseñas de HairCut Home Studio en Google Maps (4,6 de 5, 25 reseñas)" data-no-loader>
                 <span class="home-reviews-g">G</span>
                 <div><p class="home-reviews-score"><strong>4,6</strong> <span class="home-stars" aria-hidden="true">★★★★<span class="star-half">★</span></span></p><p class="home-reviews-count">25 reseñas en Google</p></div>
-            </div>
+            </a>
         </div>
         <div class="carousel carousel-auto carousel-reviews" data-autoplay="6000" data-per-view="3">
             <button type="button" class="carousel-btn carousel-btn-prev" aria-label="Reseñas anteriores">‹</button>
             <div class="carousel-viewport"><div class="carousel-track">
                 @foreach($resenas as $resena)
-                    <article class="review-card carousel-slide">
+                    <a href="{{ $reviewsMapsUrl }}" class="review-card carousel-slide" target="_blank" rel="noopener" data-no-loader aria-label="Ver reseña de {{ $resena['nombre'] }} en Google Maps">
                         <div class="review-card-top"><span class="home-stars" aria-hidden="true">{{ str_repeat('★', $resena['estrellas']) }}</span><span class="review-source"><span class="review-dot"></span> Google</span></div>
                         <p class="review-quote">“{{ $resena['texto'] }}”</p>
                         <div class="review-author"><span class="review-avatar">{{ $resena['inicial'] }}</span><div><p class="review-name">{{ $resena['nombre'] }}</p><p class="review-time">{{ $resena['tiempo'] }}</p></div></div>
-                    </article>
+                    </a>
                 @endforeach
             </div></div>
             <button type="button" class="carousel-btn carousel-btn-next" aria-label="Siguientes reseñas">›</button>
             <div class="carousel-dots" role="tablist" aria-label="Reseñas"></div>
         </div>
         <div class="home-reviews-actions">
-            <a href="https://www.google.com/maps/place/HairCut+Home+Studio/@-33.6828171,-71.1894721,17z" class="btn btn-outline" target="_blank" rel="noopener">Ver todas en Google Maps</a>
+            <a href="{{ $reviewsMapsUrl }}" class="btn btn-outline" target="_blank" rel="noopener" data-no-loader>Ver todas en Google Maps</a>
             <a href="{{ route('reservas.create') }}" class="btn btn-primary">Reservar hora</a>
         </div>
     </section>

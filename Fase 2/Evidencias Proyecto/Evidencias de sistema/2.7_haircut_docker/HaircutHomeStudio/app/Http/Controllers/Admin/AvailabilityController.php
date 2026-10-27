@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AvailabilityService;
 use App\Services\AvailabilityStore;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -45,7 +46,7 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request): RedirectResponse|JsonResponse
     {
         $datos = $request->validate([
             'anio' => ['required', 'integer', 'min:2026', 'max:2100'],
@@ -99,6 +100,13 @@ class AvailabilityController extends Controller
             $offs->unique()->values()->all(),
             $meses,
         );
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Días libres actualizados.',
+            ]);
+        }
 
         return redirect()->route('peluquero.disponibilidad.edit', ['anio' => $datos['anio'], 'mes' => $datos['mes']])
             ->with('success', 'Disponibilidad guardada.');

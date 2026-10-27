@@ -31,7 +31,7 @@ class AiStudioController extends Controller
 
     public function index(Request $request): View|RedirectResponse
     {
-        if ($request->user()?->esAdmin()) {
+        if ($this->adminSinAccesoAi($request->user())) {
             return redirect()->route('staff.welcome');
         }
 
@@ -40,7 +40,7 @@ class AiStudioController extends Controller
 
     public function show(Request $request, AiGeneration $generation): View|RedirectResponse
     {
-        if ($request->user()?->esAdmin()) {
+        if ($this->adminSinAccesoAi($request->user())) {
             return redirect()->route('staff.welcome');
         }
 
@@ -51,7 +51,7 @@ class AiStudioController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if ($request->user()?->esAdmin()) {
+        if ($this->adminSinAccesoAi($request->user())) {
             return redirect()->route('staff.welcome');
         }
 
@@ -239,6 +239,11 @@ class AiStudioController extends Controller
     {
         return (bool) config('ai.enabled')
             && (config('ai.provider') === 'fake' || filled(config('ai.api_key')));
+    }
+
+    private function adminSinAccesoAi(?User $usuario): bool
+    {
+        return (bool) ($usuario?->esAdmin() && ! $usuario->esAdminImagen());
     }
 
     private function ensureOwner(Request $request, AiGeneration $generation): void

@@ -1,4 +1,8 @@
-@extends('layouts.app', ['title' => 'Simulador de estilo - Haircut Home Studio', 'page' => 'ai'])
+@extends('layouts.app', [
+    'title' => 'Simulador de estilo - Haircut Home Studio',
+    'page' => 'ai',
+    'section' => auth()->user()?->esAdminImagen() ? 'admin' : 'public',
+])
 
 @php
     $statusLabels = [
@@ -59,15 +63,26 @@
                 </div>
                 <p class="ai-disclaimer">La simulación no garantiza un resultado idéntico. El profesional evaluará color base, textura y condición del cabello.</p>
                 <div class="actions ai-result-actions">
-                    @if(auth()->user()?->nombreRol() === 'cliente')
+                    @if(auth()->user()?->puedeUsarSimulador())
+                        @php
+                            $servicioSimulado = \App\Models\Servicio::query()
+                                ->with('tipoServicio')
+                                ->where('disponibilidad', true)
+                                ->where('nombre_servicio', $selected->style_label)
+                                ->when($selected->style_category, fn ($q) => $q->whereHas('tipoServicio', fn ($t) => $t->where('slug', $selected->style_category)))
+                                ->first();
+                        @endphp
                         <a href="{{ route('reservas.create', array_filter([
                             'ai_generation' => $selected->id,
-                        ])) }}" class="btn btn-primary">Usar al reservar</a>
-                    @else
-                        <span class="ai-linked">Resultado de prueba administrativa</span>
+                            'serv' => $servicioSimulado?->id,
+                            'cat' => $servicioSimulado?->tipoServicio?->slug ?? $selected->style_category,
+                            'paso' => 'fecha',
+                        ])) }}" class="btn btn-primary">
+                            {{ auth()->user()->esAdminImagen() ? 'Seleccionar hora' : 'Usar al reservar' }}
+                        </a>
                     @endif
-                    <a href="{{ route('ai.image', [$selected, 'output']) }}?download=1" class="btn btn-secondary">Descargar imagen</a>
-                    <form method="post" action="{{ route('ai.media.destroy', $selected) }}" onsubmit="return confirm('¿Eliminar ahora la foto original y la simulación?');">
+                    <a href="{{ route('ai.image', [$selected, 'output']) }}?download=1" class="btn btn-secondary" download data-no-loader>Descargar imagen</a>
+                    <form method="post" action="{{ route('ai.media.destroy', $selected) }}" data-no-loader data-confirm="¿Seguro que quiere eliminar la foto original y la simulación?" data-confirm-title="Eliminar">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn btn-secondary">Eliminar imágenes</button>
                     </form>

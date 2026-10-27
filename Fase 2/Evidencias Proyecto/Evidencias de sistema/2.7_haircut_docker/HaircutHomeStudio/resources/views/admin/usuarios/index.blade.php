@@ -73,7 +73,7 @@
                         <div class="catalog-row-actions">
                             <button type="button" class="catalog-icon-btn is-edit" data-panel-toggle="user-edit-{{ $persona->id_usuario }}" aria-expanded="false" title="Editar">✎ <span>Editar</span></button>
                             @unless($esYo)
-                                <form method="post" action="{{ route('admin.usuarios.destroy', $persona) }}" onsubmit="return confirm('¿Eliminar a {{ $persona->nombre_usuario }}?');">
+                                <form method="post" action="{{ route('admin.usuarios.destroy', $persona) }}" data-confirm="¿Seguro que quiere eliminar a {{ $persona->nombre_usuario }}?" data-confirm-title="Eliminar">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="catalog-icon-btn is-delete" title="Eliminar">× <span>Eliminar</span></button>
                                 </form>

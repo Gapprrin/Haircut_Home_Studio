@@ -147,4 +147,45 @@ class Reserva extends Model
             ->setTimeFromTimeString($this->hora)
             ->greaterThanOrEqualTo(now()->addMinutes(10));
     }
+
+    /**
+     * Rutas de fotos de referencia (1 o 2). Compatible con valor string legado.
+     *
+     * @return list<string>
+     */
+    public function rutasFoto(): array
+    {
+        $raw = trim((string) ($this->attributes['foto'] ?? ''));
+        if ($raw === '') {
+            return [];
+        }
+
+        if (str_starts_with($raw, '[')) {
+            $decoded = json_decode($raw, true);
+            if (! is_array($decoded)) {
+                return [];
+            }
+
+            return array_values(array_filter(
+                array_map(static fn ($item): string => trim((string) $item), $decoded),
+                static fn (string $path): bool => $path !== '',
+            ));
+        }
+
+        return [$raw];
+    }
+
+    public static function codificarFotos(array $rutas): ?string
+    {
+        $rutas = array_values(array_filter(array_map(
+            static fn ($item): string => trim((string) $item),
+            $rutas,
+        )));
+
+        return match (count($rutas)) {
+            0 => null,
+            1 => $rutas[0],
+            default => json_encode(array_slice($rutas, 0, 2), JSON_UNESCAPED_SLASHES),
+        };
+    }
 }

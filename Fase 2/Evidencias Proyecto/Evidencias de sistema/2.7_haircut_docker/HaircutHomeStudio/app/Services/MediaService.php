@@ -42,6 +42,26 @@ class MediaService
         return asset('storage/'.$this->normalizarRuta($ruta));
     }
 
+    public function urlProducto(?string $ruta, ?string $categoria = null, ?string $nombre = null): ?string
+    {
+        if ($ruta) {
+            return $this->url($ruta);
+        }
+
+        $clave = Str::lower(trim(($nombre ?? '').' '.($categoria ?? '')));
+
+        $icono = match (true) {
+            str_contains($clave, 'olaplex') => 'olaplex.png',
+            str_contains($clave, 'shampoo') || str_contains($clave, 'color') => 'color.png',
+            str_contains($clave, 'tratamiento') || str_contains($clave, 'ampolleta') => 'tratamiento.png',
+            str_contains($clave, 'aceite') || str_contains($clave, 'leave') || str_contains($clave, 'protector') => 'peinado.png',
+            str_contains($clave, 'acondicionador') || str_contains($clave, 'corte') => 'corte.png',
+            default => 'tratamiento.png',
+        };
+
+        return asset('img/iconos/'.$icono);
+    }
+
     private function normalizarRuta(string $ruta): string
     {
         $ruta = ltrim(str_replace('\\', '/', $ruta), '/');

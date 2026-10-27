@@ -66,34 +66,66 @@ function initLoader() {
 	window.hideAppLoader = hide;
 	hide();
 	window.addEventListener('pageshow', hide);
+	window.addEventListener('pagehide', hide);
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible') hide();
+	});
 
 	const back = document.getElementById('header-back');
 	back?.addEventListener('click', (event) => {
 		event.preventDefault();
+		const roleHome = back.getAttribute('data-role-home') || back.href;
+		let allowed = [];
+		try {
+			allowed = JSON.parse(back.getAttribute('data-allowed-prefixes') || '[]');
+		} catch {
+			allowed = [];
+		}
+		const pathAllowed = (pathname) => {
+			if (!Array.isArray(allowed) || allowed.length === 0) return true;
+			return allowed.some((prefix) => {
+				if (prefix === '/') return pathname === '/';
+				return pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix);
+			});
+		};
 		if (document.referrer) {
 			try {
 				const referrer = new URL(document.referrer);
-				if (referrer.origin === window.location.origin && referrer.pathname !== window.location.pathname) {
+				if (
+					referrer.origin === window.location.origin
+					&& referrer.pathname !== window.location.pathname
+					&& pathAllowed(referrer.pathname)
+				) {
 					window.history.back();
 					return;
 				}
 			} catch {}
 		}
-		window.location.href = back.href;
+		window.location.href = roleHome;
 	});
 
 	document.addEventListener('submit', (event) => {
-		if (!event.defaultPrevented && !event.target.hasAttribute('data-no-loader')) show();
+		const form = event.target;
+		if (!(form instanceof HTMLFormElement) || form.hasAttribute('data-no-loader')) return;
+		// Esperar a confirms/onsubmit que cancelan el envío.
+		window.setTimeout(() => {
+			if (event.defaultPrevented) return;
+			show();
+		}, 0);
 	});
 	document.addEventListener('click', (event) => {
 		if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-		if (event.target.closest('.nav-toggle, .side-nav-close, .carousel-dot, .carousel-btn, [data-panel-toggle], [data-panel-close], [data-no-loader], #header-back, [data-gallery-open], .gallery-modal')) return;
+		if (event.target.closest('.nav-toggle, .side-nav-close, .carousel-dot, .carousel-btn, [data-panel-toggle], [data-panel-close], [data-no-loader], #header-back, [data-gallery-open], .gallery-modal, .confirm-modal')) return;
 		const link = event.target.closest('a[href]');
-		if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+		if (!link || link.target === '_blank' || link.hasAttribute('download') || link.hasAttribute('data-no-loader')) return;
 		const href = link.getAttribute('href') || '';
 		if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
 		try {
-			if (new URL(link.href, window.location.href).origin === window.location.origin) show();
+			const url = new URL(link.href, window.location.href);
+			if (url.origin !== window.location.origin) return;
+			// Descargas / rutas de imagen no navegan a HTML: no mostrar loader.
+			if (url.searchParams.has('download') || /\/imagen\//.test(url.pathname)) return;
+			show();
 		} catch {}
 	});
 }
@@ -207,78 +239,147 @@ function initPanelsAndFilters() {
 }
 
 function initPhotoPicker() {
-	const wrapper = document.getElementById('book-photo');
-	const input = document.getElementById('book-foto');
-	const drop = document.getElementById('book-photo-drop');
-	const preview = document.getElementById('book-photo-preview');
-	const image = preview?.querySelector('img');
-	const clear = document.getElementById('book-photo-clear');
+	const grid = document.getElementById('book-photo-grid');
 	const message = document.getElementById('book-photo-msg');
-	if (!wrapper || !input || !drop || !preview || !image) return;
+	const slots = Array.from(document.querySelectorAll('[data-book-photo-slot]'));
+	if (!grid || slots.length === 0) return;
 
 	const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-	let objectUrl;
 	const showMessage = (text) => {
 		if (!message) return;
 		message.hidden = !text;
 		message.textContent = text;
 	};
-	const reset = () => {
-		if (objectUrl) URL.revokeObjectURL(objectUrl);
-		objectUrl = undefined;
-		preview.hidden = true;
-		drop.hidden = false;
-		image.removeAttribute('src');
-		wrapper.classList.remove('has-file');
-	};
-	const setFile = (file) => {
-		if (!file) return;
-		if (!allowed.has(file.type)) {
-			input.value = '';
-			reset();
-			showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
-			return;
-		}
-		if (file.size > 3 * 1024 * 1024) {
-			input.value = '';
-			reset();
-			showMessage('La imagen no puede superar 3 MB.');
-			return;
-		}
-		showMessage('');
-		if (objectUrl) URL.revokeObjectURL(objectUrl);
-		objectUrl = URL.createObjectURL(file);
-		image.src = objectUrl;
-		preview.hidden = false;
-		drop.hidden = true;
-		wrapper.classList.add('has-file');
-	};
 
-	input.addEventListener('change', () => setFile(input.files?.[0]));
-	clear?.addEventListener('click', () => { input.value = ''; reset(); showMessage(''); });
-	['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-drag'); }));
-	['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-drag'); }));
-	drop.addEventListener('drop', (event) => {
-		const file = event.dataTransfer?.files?.[0];
-		if (!file) return;
-		try {
-			const transfer = new DataTransfer();
-			transfer.items.add(file);
-			input.files = transfer.files;
-		} catch {}
-		setFile(file);
+	slots.forEach((slot) => {
+		const input = slot.querySelector('[data-book-photo-input]');
+		const drop = slot.querySelector('[data-book-photo-drop]');
+		const preview = slot.querySelector('[data-book-photo-preview]');
+		const image = preview?.querySelector('img');
+		const clear = slot.querySelector('[data-book-photo-clear]');
+		if (!input || !drop || !preview || !image) return;
+
+		let objectUrl;
+		const reset = () => {
+			if (objectUrl) URL.revokeObjectURL(objectUrl);
+			objectUrl = undefined;
+			preview.hidden = true;
+			drop.hidden = false;
+			image.removeAttribute('src');
+			slot.classList.remove('has-file');
+		};
+		const setFile = (file) => {
+			if (!file) return;
+			if (!allowed.has(file.type)) {
+				input.value = '';
+				reset();
+				showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
+				return;
+			}
+			if (file.size > 3 * 1024 * 1024) {
+				input.value = '';
+				reset();
+				showMessage('Cada imagen no puede superar 3 MB.');
+				return;
+			}
+			showMessage('');
+			if (objectUrl) URL.revokeObjectURL(objectUrl);
+			objectUrl = URL.createObjectURL(file);
+			image.src = objectUrl;
+			preview.hidden = false;
+			drop.hidden = true;
+			slot.classList.add('has-file');
+		};
+
+		input.addEventListener('change', () => setFile(input.files?.[0]));
+		clear?.addEventListener('click', () => { input.value = ''; reset(); showMessage(''); });
+		['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-drag'); }));
+		['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-drag'); }));
+		drop.addEventListener('drop', (event) => {
+			const file = event.dataTransfer?.files?.[0];
+			if (!file) return;
+			try {
+				const transfer = new DataTransfer();
+				transfer.items.add(file);
+				input.files = transfer.files;
+			} catch {}
+			setFile(file);
+		});
 	});
 }
 
 function initAvailability() {
+	const form = document.querySelector('.avail-form');
 	const month = document.querySelector('[data-availability-month]');
 	const year = document.querySelector('[data-availability-year]');
 	const base = document.querySelector('[data-availability-url]')?.dataset.availabilityUrl;
-	const navigate = () => {
-		if (month && year && base) window.location.href = `${base}?anio=${encodeURIComponent(year.value)}&mes=${encodeURIComponent(month.value)}`;
+	let saving = false;
+
+	const autosave = async () => {
+		if (!form || saving) return false;
+		saving = true;
+		try {
+			const body = new FormData(form);
+			const response = await fetch(form.action, {
+				method: 'POST',
+				body,
+				headers: {
+					Accept: 'application/json',
+					'X-Requested-With': 'XMLHttpRequest',
+				},
+				credentials: 'same-origin',
+			});
+			return response.ok;
+		} catch {
+			return false;
+		} finally {
+			saving = false;
+		}
 	};
-	month?.addEventListener('change', navigate);
-	year?.addEventListener('change', navigate);
+
+	const navigate = async () => {
+		if (!month || !year || !base) return;
+		await autosave();
+		window.location.href = `${base}?anio=${encodeURIComponent(year.value)}&mes=${encodeURIComponent(month.value)}`;
+	};
+	month?.addEventListener('change', () => { void navigate(); });
+	year?.addEventListener('change', () => { void navigate(); });
+
+	document.querySelectorAll('.avail-nav').forEach((link) => {
+		link.addEventListener('click', (event) => {
+			event.preventDefault();
+			const href = link.href;
+			void (async () => {
+				await autosave();
+				window.location.href = href;
+			})();
+		});
+	});
+
+	form?.querySelectorAll('input[name="off[]"]').forEach((checkbox) => {
+		checkbox.addEventListener('change', () => { void autosave(); });
+	});
+
+	const enableManualTime = (select) => {
+		if (!(select instanceof HTMLSelectElement) || select.dataset.manual === '1') return;
+		const input = document.createElement('input');
+		input.type = 'time';
+		input.name = select.name;
+		input.id = select.id;
+		input.value = select.value;
+		input.required = true;
+		input.step = '60';
+		input.className = select.className || '';
+		input.title = 'Escribe la hora manualmente';
+		input.dataset.availTime = '1';
+		select.replaceWith(input);
+		input.focus();
+		input.select?.();
+	};
+
+	document.querySelectorAll('[data-avail-time]').forEach((el) => {
+		el.addEventListener('dblclick', () => enableManualTime(el));
+	});
 
 	const visibleYear = document.querySelector('[data-visible-year]');
 	const showYear = () => {
@@ -443,12 +544,23 @@ function initAiStudio() {
 				const response = await fetch(statusRoot.dataset.aiStatusUrl, { headers: { Accept: 'application/json' } });
 				if (!response.ok) return;
 				const status = await response.json();
-				if (!['pending', 'processing'].includes(status.status)) {
-					window.clearInterval(poll);
-					window.location.replace(status.show_url);
+				if (['pending', 'processing'].includes(status.status)) return;
+
+				window.clearInterval(poll);
+				window.hideAppLoader?.();
+
+				const next = new URL(status.show_url, window.location.href);
+				const here = new URL(window.location.href);
+				if (next.pathname === here.pathname) {
+					window.location.reload();
+				} else {
+					window.location.replace(next.href);
 				}
 			} catch {}
 		}, 3000);
+	} else {
+		// Resultado ya listo: asegurar que el overlay no quede pegado.
+		window.hideAppLoader?.();
 	}
 }
 
@@ -629,6 +741,75 @@ function initGalleryLightbox() {
 	});
 }
 
+function initConfirmModal() {
+	const modal = document.getElementById('confirm-modal');
+	const messageEl = document.getElementById('confirm-modal-message');
+	const titleEl = document.getElementById('confirm-modal-title');
+	const okBtn = document.getElementById('confirm-modal-ok');
+	if (!modal || !messageEl || !okBtn) return;
+
+	let pendingForm = null;
+	let lastFocus = null;
+
+	const close = () => {
+		modal.hidden = true;
+		document.body.classList.remove('confirm-open');
+		pendingForm = null;
+		lastFocus?.focus?.();
+		lastFocus = null;
+	};
+
+	const open = (form, message, title) => {
+		pendingForm = form;
+		lastFocus = document.activeElement;
+		titleEl.textContent = title || 'Confirmar';
+		messageEl.textContent = message;
+		modal.hidden = false;
+		document.body.classList.add('confirm-open');
+		okBtn.focus();
+	};
+
+	document.addEventListener('submit', (event) => {
+		const form = event.target;
+		if (!(form instanceof HTMLFormElement)) return;
+		if (form.dataset.confirmAccepted === '1') {
+			delete form.dataset.confirmAccepted;
+			return;
+		}
+		const message = form.getAttribute('data-confirm');
+		if (!message) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const title = form.getAttribute('data-confirm-title') || (
+			/cancel/i.test(message) ? 'Cancelar' : 'Eliminar'
+		);
+		open(form, message, title);
+	}, true);
+
+	okBtn.addEventListener('click', () => {
+		const form = pendingForm;
+		if (!form) {
+			close();
+			return;
+		}
+		form.dataset.confirmAccepted = '1';
+		close();
+		if (typeof form.requestSubmit === 'function') {
+			form.requestSubmit();
+		} else {
+			form.submit();
+		}
+	});
+
+	modal.querySelectorAll('[data-confirm-dismiss]').forEach((el) => {
+		el.addEventListener('click', close);
+	});
+
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && !modal.hidden) close();
+	});
+}
+
 initReveal();
 initNavigation();
 initLoader();
@@ -641,3 +822,4 @@ initSmallInteractions();
 initAiStudio();
 initBookingWizard();
 initGalleryLightbox();
+initConfirmModal();

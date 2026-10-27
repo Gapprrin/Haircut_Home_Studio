@@ -27,7 +27,7 @@ foreach ($attributes->all() as $__key => $__value) {
 }
 
 unset($__defined_vars, $__key, $__value); ?>
-<?php ($imageUrl = app(\App\Services\MediaService::class)->url($product->imagen)); ?>
+<?php ($imageUrl = app(\App\Services\MediaService::class)->urlProducto($product->imagen, $product->categoria?->nombre, $product->producto)); ?>
 <article <?php echo e($attributes->class(['product-card'])); ?>>
     <div class="product-photo">
         <?php if($imageUrl): ?>

@@ -75,10 +75,13 @@
     <div class="staff-welcome-actions">
         @if($rol === 'admin')
             <a href="{{ route('admin.servicios.index') }}" class="btn btn-primary">Ir a servicios</a>
-            <a href="{{ route('home') }}" class="btn btn-secondary">Volver al inicio</a>
+            <a href="{{ route('admin.catalogo.index') }}" class="btn btn-secondary">Ver catálogo</a>
+            @if(auth()->user()?->esAdminImagen())
+                <a href="{{ route('ai.index') }}" class="btn btn-secondary">Simulador</a>
+            @endif
         @elseif($rol === 'peluquero')
             <a href="{{ route('peluquero.dashboard') }}" class="btn btn-primary">Ir al panel</a>
-            <a href="{{ route('home') }}" class="btn btn-secondary">Volver al inicio</a>
+            <a href="{{ route('peluquero.solicitudes.index') }}" class="btn btn-secondary">Ver solicitudes</a>
         @else
             <a href="{{ route('home') }}" class="btn btn-primary">Volver al inicio</a>
         @endif

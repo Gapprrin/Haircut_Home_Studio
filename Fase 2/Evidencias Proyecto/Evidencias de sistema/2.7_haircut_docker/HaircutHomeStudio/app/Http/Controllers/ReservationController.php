@@ -31,7 +31,7 @@ class ReservationController extends Controller
 
     public function index(Request $request): View|RedirectResponse
     {
-        if ($request->user()?->esStaff()) {
+        if ($this->bloquearStaff($request)) {
             return redirect()->route('staff.welcome');
         }
 
@@ -52,9 +52,12 @@ class ReservationController extends Controller
 
     public function create(Request $request): View|RedirectResponse
     {
-        if ($request->user()?->esStaff()) {
+        if ($this->bloquearStaff($request)) {
             return redirect()->route('staff.welcome');
         }
+
+        $aiGeneration = $this->selectedAiGeneration($request);
+        $servicioDesdeAi = $this->servicioDesdeAi($aiGeneration);
 
         $categorias = TipoServicio::query()
             ->with(['servicios' => fn ($query) => $query->where('disponibilidad', true)->orderBy('id_servicio')])
@@ -63,21 +66,35 @@ class ReservationController extends Controller
             ->filter(fn (TipoServicio $tipo) => $tipo->servicios->isNotEmpty())
             ->values();
 
+        $servicioId = $request->integer('serv') > 0
+            ? $request->integer('serv')
+            : (int) ($servicioDesdeAi?->id ?? 0);
+
         $servicio = Servicio::query()
             ->with('tipoServicio')
             ->where('disponibilidad', true)
-            ->find($request->integer('serv'));
+            ->find($servicioId) ?? $servicioDesdeAi;
 
-        $categoria = $categorias->firstWhere('slug', $request->string('cat')->toString())
+        $catSlug = $request->string('cat')->toString()
+            ?: (string) ($aiGeneration?->style_category ?? '')
+            ?: (string) ($servicio?->tipoServicio?->slug ?? '');
+
+        $categoria = $categorias->firstWhere('slug', $catSlug)
             ?? ($servicio ? $categorias->firstWhere('id_tipo_servicio', $servicio->id_tipo_servicio) : null)
             ?? $categorias->first();
 
         $servicio = $servicio && $servicio->id_tipo_servicio === $categoria?->id_tipo_servicio
             ? $servicio
-            : $categoria?->servicios->first();
+            : ($servicioDesdeAi && $servicioDesdeAi->id_tipo_servicio === $categoria?->id_tipo_servicio
+                ? $servicioDesdeAi
+                : $categoria?->servicios->first());
 
         if (! $categoria || ! $servicio) {
             return redirect()->route('home')->with('error', 'Elige un servicio para continuar.');
+        }
+
+        if ($aiGeneration && ! $request->filled('paso')) {
+            $request->merge(['paso' => 'fecha']);
         }
 
         $anio = $request->integer('anio', (int) now()->format('Y'));
@@ -87,11 +104,8 @@ class ReservationController extends Controller
             $mes = (int) now()->format('n');
         }
 
+        // La fecha elegida se conserva al cambiar de mes; el calendario sigue el mes pedido.
         $fecha = $this->fechaSeleccionada($request->string('fecha')->toString(), $anio, $mes);
-        if ($fecha) {
-            $anio = $fecha->year;
-            $mes = $fecha->month;
-        }
 
         $slots = $fecha ? $this->availability->slotsDisponibles($fecha, $servicio) : [];
         $hora = in_array($request->string('hora')->toString(), $slots, true)
@@ -109,8 +123,6 @@ class ReservationController extends Controller
                 $estados[$dia] = $this->availability->estadoDia($fechaDia, $servicio);
             }
         }
-        $aiGeneration = $this->selectedAiGeneration($request);
-
         return view('reservas.create', [
             'categorias' => $categorias,
             'categoria' => $categoria,
@@ -132,7 +144,7 @@ class ReservationController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if ($request->user()?->esStaff()) {
+        if ($this->bloquearStaff($request)) {
             return redirect()->route('staff.welcome');
         }
 
@@ -141,20 +153,23 @@ class ReservationController extends Controller
             'fecha' => ['required', 'date_format:Y-m-d'],
             'hora' => ['required', 'date_format:H:i'],
             'lugar' => ['required', Rule::in(['salon', 'domicilio'])],
-            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
+            'fotos' => ['nullable', 'array', 'max:2'],
+            'fotos.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:3072'],
             'ai_generation_id' => ['nullable', 'integer'],
         ], [
-            'foto.image' => 'Solo se permiten imágenes (JPG, PNG, WEBP o GIF). No PDF.',
-            'foto.mimes' => 'La foto debe estar en formato JPG, PNG, WEBP o GIF.',
-            'foto.max' => 'La foto no puede superar 3 MB.',
+            'fotos.max' => 'Puedes adjuntar como máximo 2 imágenes.',
+            'fotos.*.image' => 'Solo se permiten imágenes (JPG, PNG, WEBP o GIF). No PDF.',
+            'fotos.*.mimes' => 'La foto debe estar en formato JPG, PNG, WEBP o GIF.',
+            'fotos.*.max' => 'Cada imagen no puede superar 3 MB.',
         ]);
 
         $servicio = Servicio::query()->with('tipoServicio')->findOrFail($datos['servicio_id']);
         $foto = null;
+        $rutasFoto = [];
         $imagenSimulada = null;
 
         try {
-            DB::transaction(function () use ($request, $datos, $servicio, &$foto, &$imagenSimulada): void {
+            DB::transaction(function () use ($request, $datos, $servicio, &$foto, &$rutasFoto, &$imagenSimulada): void {
                 Reserva::query()->whereDate('fecha', $datos['fecha'])->lockForUpdate()->get();
                 if (! in_array($datos['hora'], $this->availability->slotsDisponibles($datos['fecha'], $servicio), true)) {
                     throw new DomainException('La hora seleccionada ya no está disponible.');
@@ -164,7 +179,7 @@ class ReservationController extends Controller
                 if (! empty($datos['ai_generation_id'])) {
                     $aiGeneration = AiGeneration::query()
                         ->whereKey($datos['ai_generation_id'])
-                        ->where('id_usuario', $request->user()->id_usuario)
+                        ->delUsuario($request->user())
                         ->where('status', 'completed')
                         ->where('expires_at', '>', now())
                         ->lockForUpdate()
@@ -186,11 +201,20 @@ class ReservationController extends Controller
                     }
                 }
 
-                $foto = $request->file('foto')?->store('fotos', 'public');
-                if ($foto === false) {
-                    $foto = null;
-                    throw ValidationException::withMessages(['foto' => 'No fue posible guardar la foto. Intenta nuevamente.']);
+                foreach (array_slice($request->file('fotos', []) ?: [], 0, 2) as $archivo) {
+                    if (! $archivo) {
+                        continue;
+                    }
+                    $guardada = $archivo->store('fotos', 'public');
+                    if ($guardada === false) {
+                        throw ValidationException::withMessages([
+                            'fotos' => 'No fue posible guardar una de las fotos. Intenta nuevamente.',
+                        ]);
+                    }
+                    $rutasFoto[] = $guardada;
                 }
+
+                $foto = Reserva::codificarFotos($rutasFoto);
 
                 $reserva = Reserva::create([
                     'id_usuario' => $request->user()->id_usuario,
@@ -209,11 +233,11 @@ class ReservationController extends Controller
                 ]);
             });
         } catch (DomainException) {
-            $this->removeUncommittedImages($foto, $imagenSimulada);
+            $this->removeUncommittedImages($rutasFoto, $imagenSimulada);
 
             return back()->withInput()->with('error', 'Esa hora ya no está disponible. Elige otra.');
         } catch (Throwable $exception) {
-            $this->removeUncommittedImages($foto, $imagenSimulada);
+            $this->removeUncommittedImages($rutasFoto, $imagenSimulada);
             throw $exception;
         }
 
@@ -291,10 +315,54 @@ class ReservationController extends Controller
             : null;
     }
 
-    private function removeUncommittedImages(?string $foto, ?string $imagenSimulada): void
+    private function servicioDesdeAi(?AiGeneration $generation): ?Servicio
     {
-        if ($foto) {
-            Storage::disk('public')->delete($foto);
+        if (! $generation?->style_label) {
+            return null;
+        }
+
+        $query = Servicio::query()
+            ->with('tipoServicio')
+            ->where('disponibilidad', true)
+            ->where('nombre_servicio', $generation->style_label);
+
+        if ($generation->style_category) {
+            $query->whereHas(
+                'tipoServicio',
+                fn ($tipo) => $tipo->where('slug', $generation->style_category),
+            );
+        }
+
+        return $query->first()
+            ?? Servicio::query()
+                ->with('tipoServicio')
+                ->where('disponibilidad', true)
+                ->where('nombre_servicio', $generation->style_label)
+                ->first();
+    }
+
+    private function bloquearStaff(Request $request): bool
+    {
+        $usuario = $request->user();
+
+        return (bool) ($usuario?->esStaff() && ! $usuario->esAdminImagen());
+    }
+
+    /** @param  list<string>|string|null  $fotos */
+    private function removeUncommittedImages(array|string|null $fotos, ?string $imagenSimulada): void
+    {
+        $rutas = is_array($fotos) ? $fotos : (is_string($fotos) && $fotos !== '' ? [$fotos] : []);
+        foreach ($rutas as $ruta) {
+            // Valor JSON legado o path simple.
+            if (str_starts_with($ruta, '[')) {
+                foreach (json_decode($ruta, true) ?: [] as $item) {
+                    if (is_string($item) && $item !== '') {
+                        Storage::disk('public')->delete($item);
+                    }
+                }
+                continue;
+            }
+            Storage::disk('public')->delete($ruta);
         }
         if ($imagenSimulada) {
             Storage::disk('local')->delete($imagenSimulada);

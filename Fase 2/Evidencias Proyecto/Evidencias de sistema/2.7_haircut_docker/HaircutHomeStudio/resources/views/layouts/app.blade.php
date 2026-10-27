@@ -12,9 +12,9 @@
     if ($isHome) $classes[] = 'user-motion';
     $usuario = auth()->user();
     $rolNombre = strtolower((string) ($usuario?->rol?->rol ?? ''));
-    $backRoute = $rolNombre === 'admin'
-        ? route('admin.servicios.index')
-        : ($rolNombre === 'peluquero' ? route('peluquero.dashboard') : route('home'));
+    $homeRoute = $usuario ? $usuario->rutaInicio() : route('home');
+    $backRoute = $homeRoute;
+    $backAllowed = $usuario ? $usuario->prefijosRutasPermitidas() : ['/', '/productos', '/login', '/contrasena'];
     $horaInicio = substr((string) $layoutConfig->hora_inicio, 0, 5);
     $horaFin = substr((string) $layoutConfig->hora_fin, 0, 5);
 @endphp
@@ -43,7 +43,7 @@
 <header class="home-top">
     <div class="container container-fluid">
         <div class="home-top-left">
-            <a href="{{ route('home') }}" class="home-brand-link" aria-label="HairCut Home Studio — Inicio">
+            <a href="{{ $homeRoute }}" class="home-brand-link" aria-label="HairCut Home Studio — Inicio">
                 <span class="home-brand-mark-wrap"><img class="home-brand-logo" src="{{ asset('img/logo.png') }}" alt=""></span>
                 <span class="home-brand-name">HairCut Home Studio</span>
             </a>
@@ -55,18 +55,16 @@
             @else
                 <a href="{{ route('perfil.edit') }}" class="nav-user nav-pill" title="Editar mi información">{{ $usuario->nombre_usuario }}</a>
             @endguest
-            @unless($isHome)
-                <a href="{{ $backRoute }}" class="header-back" id="header-back" aria-label="Volver atrás" title="Volver atrás">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M14.5 5.5 8 12l6.5 6.5 1.4-1.4L10.8 12l5.1-5.1z"/></svg>
-                </a>
-            @endunless
+            <a href="{{ $backRoute }}" class="header-back" id="header-back" aria-label="Volver atrás" title="Volver atrás" data-role-home="{{ $backRoute }}" data-allowed-prefixes="{{ e(json_encode($backAllowed)) }}">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M14.5 5.5 8 12l6.5 6.5 1.4-1.4L10.8 12l5.1-5.1z"/></svg>
+            </a>
             <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-acc" aria-label="Abrir menú">
                 <span></span><span></span><span></span>
             </button>
         </div>
         <nav class="home-top-right side-nav" id="nav-acc">
             <div class="side-nav-head">
-                <a href="{{ route('home') }}" class="side-nav-brand"><img src="{{ asset('img/logo.png') }}" alt=""><span>HairCut Home Studio</span></a>
+                <a href="{{ $homeRoute }}" class="side-nav-brand"><img src="{{ asset('img/logo.png') }}" alt=""><span>HairCut Home Studio</span></a>
                 <button type="button" class="side-nav-close" aria-label="Cerrar menú">&times;</button>
             </div>
             <p class="side-nav-title">Menú</p>
@@ -76,7 +74,13 @@
                     <a href="{{ route('login', ['modo' => 'registro']) }}" class="btn-nav btn-nav-fill">Registrarse</a>
                 </div>
             @else
-                <a href="{{ route('perfil.edit') }}" class="side-nav-user {{ $page === 'perfil' ? 'is-current' : '' }}" title="Editar mi información">{{ $usuario->nombre_usuario }}</a>
+                <div class="side-nav-auth">
+                    <a href="{{ route('perfil.edit') }}" class="btn-nav btn-nav-outline {{ $page === 'perfil' ? 'is-current' : '' }}" title="Editar mi información">{{ $usuario->nombre_usuario }}</a>
+                    <form method="post" action="{{ route('logout') }}" class="side-nav-logout-form">
+                        @csrf
+                        <button type="submit" class="btn-nav btn-nav-fill">Cerrar sesión</button>
+                    </form>
+                </div>
             @endguest
 
             @if($rolNombre === 'peluquero')
@@ -88,6 +92,11 @@
                 <a href="{{ route('admin.servicios.index') }}" class="nav-link {{ $page === 'servicios' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✂</span> Servicios</a>
                 <a href="{{ route('admin.catalogo.index') }}" class="nav-link {{ $page === 'catalogo' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">▣</span> Catálogo</a>
                 <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ $page === 'usuarios' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">☺</span> Personas</a>
+                @if($usuario->esAdminImagen())
+                    <a href="{{ route('ai.index') }}" class="nav-link {{ $page === 'ai' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✦</span> Simulador</a>
+                    <a href="{{ route('reservas.create') }}" class="nav-link {{ $page === 'nueva' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">✎</span> Reservar</a>
+                    <a href="{{ route('reservas.index') }}" class="nav-link {{ $page === 'mis' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◷</span> Mis reservas</a>
+                @endif
             @else
                 <a href="{{ route('home') }}" class="nav-link {{ $page === 'inicio' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">⌂</span> Inicio</a>
                 <a href="{{ route('productos.index') }}" class="nav-link {{ $page === 'productos' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◈</span> Productos</a>
@@ -99,12 +108,6 @@
                     <a href="{{ route('reservas.index') }}" class="nav-link {{ $page === 'mis' ? 'is-current' : '' }}"><span class="nav-ico" aria-hidden="true">◷</span> Mis reservas</a>
                 @endauth
             @endif
-            @auth
-                <form method="post" action="{{ route('logout') }}" class="nav-logout-form">
-                    @csrf
-                    <button type="submit" class="nav-link nav-logout"><span class="nav-ico" aria-hidden="true">→</span> Cerrar sesión</button>
-                </form>
-            @endauth
         </nav>
         <div class="side-nav-overlay" hidden></div>
     </div>
@@ -162,6 +165,17 @@
     </div>
     <div class="footer-bottom"><div class="container container-fluid"><p class="footer-copy">&copy; 2026 Haircut Home Studio</p></div></div>
 </footer>
+<div id="confirm-modal" class="confirm-modal" hidden>
+    <div class="confirm-modal-backdrop" data-confirm-dismiss></div>
+    <div class="confirm-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <h2 id="confirm-modal-title" class="confirm-modal-title">Confirmar</h2>
+        <p id="confirm-modal-message" class="confirm-modal-message"></p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-secondary" data-confirm-dismiss>Volver</button>
+            <button type="button" class="btn btn-primary" id="confirm-modal-ok">Confirmar</button>
+        </div>
+    </div>
+</div>
 @stack('scripts')
 </body>
 </html>

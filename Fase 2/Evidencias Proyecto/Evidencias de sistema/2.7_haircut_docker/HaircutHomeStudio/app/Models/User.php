@@ -94,15 +94,117 @@ class User extends Authenticatable
         return $this->nombreRol() === 'peluquero';
     }
 
+    public function esCliente(): bool
+    {
+        return in_array($this->nombreRol(), ['cliente', 'cliadmin'], true);
+    }
+
     public function esStaff(): bool
     {
         return in_array($this->nombreRol(), ['admin', 'peluquero'], true);
     }
 
-    /** El esquema actual no tiene esta columna; se mantiene para no romper cuotas/AI. */
+    public function esAdminImagen(): bool
+    {
+        return strcasecmp((string) $this->email, 'admin.imagen@haircut.cl') === 0;
+    }
+
+    public function puedeUsarSimulador(): bool
+    {
+        return $this->esCliente() || $this->esAdminImagen();
+    }
+
+    public function rutaInicio(): string
+    {
+        return match (true) {
+            $this->esAdmin(), $this->esPeluquero() => route('staff.welcome'),
+            default => route('home'),
+        };
+    }
+
+    /** Destino del panel operativo (después de la bienvenida). */
+    public function rutaPanel(): string
+    {
+        return match (true) {
+            $this->esAdmin() => route('admin.servicios.index'),
+            $this->esPeluquero() => route('peluquero.dashboard'),
+            default => route('home'),
+        };
+    }
+
+    /**
+     * ¿Puede entrar a rutas protegidas con role:X?
+     *
+     * @param  string  ...$roles
+     */
+    public function puedeAccederComo(string ...$roles): bool
+    {
+        $roles = array_map('strtolower', $roles);
+        $mio = $this->nombreRol();
+
+        if (in_array($mio, $roles, true)) {
+            return true;
+        }
+
+        if (in_array('cliente', $roles, true) && ($mio === 'cliadmin' || $this->esAdminImagen())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Prefijos de ruta válidos para “volver atrás” según el rol.
+     *
+     * @return list<string>
+     */
+    public function prefijosRutasPermitidas(): array
+    {
+        if ($this->esAdmin()) {
+            $prefijos = [
+                '/admin/servicios',
+                '/admin/catalogo',
+                '/admin/usuarios',
+                '/mi-perfil',
+                '/bienvenida',
+            ];
+            if ($this->esAdminImagen()) {
+                array_push($prefijos, '/simulador', '/reservar', '/mis-reservas');
+            }
+
+            return $prefijos;
+        }
+
+        if ($this->esPeluquero()) {
+            return [
+                '/admin/dashboard',
+                '/admin/disponibilidad',
+                '/admin/solicitudes',
+                '/admin/horas',
+                '/admin/reportes',
+                '/mi-perfil',
+                '/bienvenida',
+            ];
+        }
+
+        return [
+            '/',
+            '/productos',
+            '/reservar',
+            '/mis-reservas',
+            '/simulador',
+            '/mi-perfil',
+            '/contrasena',
+        ];
+    }
+
+    /**
+     * El esquema actual no tiene la columna ai_sin_limite.
+     * Solo Admin Test Imagen tiene cupo ilimitado (sin tocar la BD).
+     */
     protected function aiSinLimite(): Attribute
     {
-        return Attribute::get(fn (): bool => false);
+        return Attribute::get(fn (): bool => $this->esAdminImagen());
     }
 }
 

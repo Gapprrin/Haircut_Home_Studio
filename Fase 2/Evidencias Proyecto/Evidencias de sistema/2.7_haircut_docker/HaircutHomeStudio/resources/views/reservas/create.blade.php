@@ -51,8 +51,15 @@
 <section class="book" data-book-wizard data-book-initial-step="{{ $initialStep }}">
     <div class="book-head">
         <div><p class="home-kicker">Agenda tu visita</p><h2>Reserva aquí</h2></div>
-        <a href="{{ route('home') }}" class="book-close" aria-label="Cancelar reserva" title="Cancelar reserva">×</a>
+        <a href="{{ auth()->user()?->esAdminImagen() ? route('ai.index') : route('home') }}" class="book-close" aria-label="Cancelar reserva" title="Cancelar reserva">×</a>
     </div>
+
+    @if($aiGeneration)
+        <div class="book-suggest" role="status">
+            Servicio preseleccionado desde el simulador: <strong>{{ $servicio->nombre }}</strong>.
+            Elige fecha y hora para continuar.
+        </div>
+    @endif
 
     <ol class="book-progress" aria-label="Progreso de reserva">
         @foreach($steps as $key => $step)
@@ -105,9 +112,9 @@
         <section class="book-step" data-book-step="fecha" @if($initialStep !== 'fecha') hidden @endif>
             <div class="book-step-heading"><p class="home-kicker">Paso 2</p><h3>Fecha y hora</h3><p>{{ $longService ? 'Para este servicio largo recomendamos horarios de mañana.' : 'Elige una fecha y una hora disponible.' }}</p></div>
             <div class="book-month">
-                @if($previousMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes anterior">‹</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+                @if($previousMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'paso' => 'fecha']) }}" aria-label="Mes anterior" data-no-loader>‹</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
                 <div class="book-month-pill">{{ \App\Support\Format::MESES[$mes] }} {{ $anio }}</div>
-                @if($nextMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes siguiente">›</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+                @if($nextMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'paso' => 'fecha']) }}" aria-label="Mes siguiente" data-no-loader>›</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
             </div>
             <table class="book-cal">
                 <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
@@ -121,9 +128,10 @@
                                 $state = $estados[$day];
                                 $selected = $dayDate === $fecha;
                                 $class = 'd st-'.$state.($selected ? ' is-sel' : '');
+                                $puedeElegir = in_array($state, ['disponible', 'ocupado'], true);
                             @endphp
-                            @if(in_array($state, ['disponible', 'ocupado'], true) && !$selected)
-                                <a class="{{ $class }}" href="{{ $bookingUrl(['fecha' => $dayDate, 'hora' => '', 'anio' => $anio, 'mes' => $mes, 'paso' => 'fecha']) }}">{{ $day }}</a>
+                            @if($puedeElegir)
+                                <a class="{{ $class }}" href="{{ $bookingUrl(['fecha' => $dayDate, 'hora' => $selected ? $hora : '', 'anio' => $anio, 'mes' => $mes, 'paso' => 'fecha']) }}" data-no-loader>{{ $day }}</a>
                             @else<span class="{{ $class }}">{{ $day }}</span>@endif
                         @endif
                         </td>
@@ -163,16 +171,29 @@
         </section>
 
         <section class="book-step" data-book-step="referencia" @if($initialStep !== 'referencia') hidden @endif>
-            <div class="book-step-heading"><p class="home-kicker">Paso 3</p><h3>Imagen de referencia</h3><p>Opcional: agrega una inspiración para que el profesional entienda mejor el resultado que buscas.</p></div>
+            <div class="book-step-heading"><p class="home-kicker">Paso 3</p><h3>Imágenes de referencia</h3><p>Opcional: agrega hasta 2 inspiraciones para que el profesional entienda mejor el resultado que buscas.</p></div>
             @if($aiGeneration)
                 <div class="book-ai-reference"><img src="{{ route('ai.image', [$aiGeneration, 'output']) }}" alt="Simulación de {{ $aiGeneration->style_label ?? 'estilo' }}"><div><strong>Simulación IA incluida</strong><p>{{ $aiGeneration->style_label ?? 'Referencia de estilo' }}</p></div></div>
             @endif
-            <div class="book-card"><div class="book-photo" id="book-photo">
-                <input class="book-photo-input" type="file" id="book-foto" name="foto" accept="image/jpeg,image/png,image/webp,image/gif">
-                <label class="book-photo-drop" for="book-foto" id="book-photo-drop"><span class="book-photo-ico" aria-hidden="true">＋</span><span class="book-photo-title">Agregar imagen</span><span class="book-photo-sub">Arrástrala aquí o tócala para elegir · JPG, PNG o WEBP</span></label>
-                <div class="book-photo-preview" id="book-photo-preview" hidden><img alt="Vista previa de la imagen"><button type="button" class="book-photo-clear" id="book-photo-clear" aria-label="Quitar imagen">&times;</button></div>
+            <div class="book-card">
+                <div class="book-photo-grid" id="book-photo-grid" data-book-photos>
+                    @foreach([1, 2] as $slot)
+                        <div class="book-photo" data-book-photo-slot="{{ $slot }}">
+                            <input class="book-photo-input" type="file" id="book-foto-{{ $slot }}" name="fotos[]" accept="image/jpeg,image/png,image/webp,image/gif" data-book-photo-input>
+                            <label class="book-photo-drop" for="book-foto-{{ $slot }}" data-book-photo-drop>
+                                <span class="book-photo-ico" aria-hidden="true">＋</span>
+                                <span class="book-photo-title">Imagen {{ $slot }}</span>
+                                <span class="book-photo-sub">JPG, PNG o WEBP · máx. 3 MB</span>
+                            </label>
+                            <div class="book-photo-preview" data-book-photo-preview hidden>
+                                <img alt="Vista previa de la imagen {{ $slot }}">
+                                <button type="button" class="book-photo-clear" data-book-photo-clear aria-label="Quitar imagen {{ $slot }}">&times;</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
                 <p class="book-photo-msg" id="book-photo-msg" hidden></p>
-            </div></div>
+            </div>
             <div class="book-step-actions"><button type="button" class="book-step-back" data-book-back="fecha">← Atrás</button><button type="button" class="book-step-next" data-book-next="lugar">Siguiente <span aria-hidden="true">→</span></button></div>
         </section>
 

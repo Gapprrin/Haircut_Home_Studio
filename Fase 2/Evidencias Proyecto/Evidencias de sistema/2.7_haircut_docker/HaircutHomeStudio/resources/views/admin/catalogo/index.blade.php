@@ -27,16 +27,16 @@
         <div class="catalog-table" role="table" aria-label="Catálogo de productos">
             <div class="catalog-table-head" role="row"><span>Producto</span><span>Precio</span><span>Estado</span><span>Categoría</span><span>Opciones</span></div>
             @foreach($productos as $producto)
-                @php($imageUrl = $media->url($producto->imagen))
+                @php($imageUrl = $media->urlProducto($producto->imagen, $producto->categoria?->nombre, $producto->nombre))
                 <article class="catalog-row" role="row" data-filter-row="product-row" data-filter-text="{{ Str::lower($producto->nombre) }}">
                     <div class="catalog-row-main">
-                        <div class="catalog-row-product"><div class="catalog-thumb">@if($imageUrl)<img src="{{ $imageUrl }}" alt="">@else<span>Sin foto</span>@endif</div><div><strong class="catalog-row-name">{{ $producto->nombre }}</strong>@if($producto->descripcion)<p class="catalog-row-desc">{{ $producto->descripcion }}</p>@endif</div></div>
+                        <div class="catalog-row-product"><div class="catalog-thumb">@if($imageUrl)<img class="icon-pack" src="{{ $imageUrl }}" alt="">@else<span>Sin foto</span>@endif</div><div><strong class="catalog-row-name">{{ $producto->nombre }}</strong>@if($producto->descripcion)<p class="catalog-row-desc">{{ $producto->descripcion }}</p>@endif</div></div>
                         <div class="catalog-row-price" data-label="Precio">{{ \App\Support\Format::precio($producto->precio) }}</div>
                         <div class="catalog-row-status" data-label="Estado"><span class="catalog-badge {{ $producto->activo ? 'is-on' : 'is-off' }}">{{ $producto->activo ? 'Visible' : 'Oculto' }}</span></div>
                         <div class="catalog-row-orden" data-label="Categoría">{{ $producto->categoria?->nombre ?? '—' }}</div>
                         <div class="catalog-row-actions">
                             <button type="button" class="catalog-icon-btn is-edit" data-panel-toggle="product-edit-{{ $producto->id }}" aria-expanded="false" title="Editar">✎ <span>Editar</span></button>
-                            <form method="post" action="{{ route('admin.catalogo.destroy', $producto) }}" onsubmit="return confirm('¿Eliminar este producto del catálogo?');">@csrf @method('DELETE')<button type="submit" class="catalog-icon-btn is-delete" title="Eliminar">× <span>Eliminar</span></button></form>
+                            <form method="post" action="{{ route('admin.catalogo.destroy', $producto) }}" data-confirm="¿Seguro que quiere eliminar este producto?" data-confirm-title="Eliminar">@csrf @method('DELETE')<button type="submit" class="catalog-icon-btn is-delete" title="Eliminar">× <span>Eliminar</span></button></form>
                         </div>
                     </div>
                     <div class="catalog-row-edit" id="product-edit-{{ $producto->id }}" hidden>

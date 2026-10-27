@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AiStudioController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
@@ -24,6 +25,11 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'show'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1')->name('login.store');
     Route::post('/registro', [AuthController::class, 'register'])->middleware('throttle:6,1')->name('register.store');
+
+    Route::get('/contrasena/olvidada', [PasswordResetController::class, 'requestForm'])->name('password.request');
+    Route::post('/contrasena/olvidada', [PasswordResetController::class, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/contrasena/restablecer/{token}', [PasswordResetController::class, 'resetForm'])->name('password.reset');
+    Route::post('/contrasena/restablecer', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -35,7 +41,7 @@ Route::middleware('auth')->group(function (): void {
 
 Route::get('/bienvenida', StaffWelcomeController::class)->middleware('auth')->name('staff.welcome');
 
-Route::middleware(['auth', 'role:cliente'])->group(function (): void {
+Route::middleware(['auth', 'ai.access'])->group(function (): void {
     Route::get('/simulador', [AiStudioController::class, 'index'])->name('ai.index');
     Route::post('/simulador', [AiStudioController::class, 'store'])->middleware('throttle:ai-generations')->name('ai.store');
     Route::get('/simulador/{generation}', [AiStudioController::class, 'show'])->name('ai.show');

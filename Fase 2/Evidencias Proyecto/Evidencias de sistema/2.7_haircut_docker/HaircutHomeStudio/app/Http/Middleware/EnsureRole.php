@@ -10,12 +10,16 @@ class EnsureRole
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        // Temporal: sin control de roles mientras se prueba el flujo.
-        // Más adelante se vuelve a validar $roles contra $usuario->rol.
-        if (! $request->user()) {
+        $usuario = $request->user();
+
+        if (! $usuario) {
             return redirect()->route('login');
         }
 
-        return $next($request);
+        if ($usuario->puedeAccederComo(...$roles)) {
+            return $next($request);
+        }
+
+        return redirect()->to($usuario->rutaInicio());
     }
 }

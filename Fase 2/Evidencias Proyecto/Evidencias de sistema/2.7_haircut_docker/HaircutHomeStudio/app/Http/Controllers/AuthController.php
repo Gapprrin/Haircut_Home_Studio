@@ -3,21 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\MessagingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly MessagingService $messaging) {}
+
     public function show(Request $request): View
     {
         return view('auth.login', [
             'registro' => $request->string('modo')->toString() === 'registro',
-            'nombreSugerido' => 'Cliente '.random_int(1000, 9999),
+            'nombreSugerido' => 'Clienta',
         ]);
     }
 
@@ -29,8 +31,8 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // esta linea, aplica la función de normalización, para ciertas credenciales.
-        $credenciales['email'] = $this->normalizarIdentificador($credenciales['email']);
+        // Resuelve usuario/correo (ej. "rosa" → email real de la cuenta).
+        $credenciales['email'] = $this->resolverEmailLogin($credenciales['email']);
 
         // Se realiza la autenticación del usuario.
         if (! Auth::attempt($credenciales)) {
@@ -41,8 +43,17 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($this->inicioPara(Auth::user()))
-            ->with('success', 'Sesión iniciada.');
+        $usuario = Auth::user();
+        $destino = $this->inicioPara($usuario);
+
+        // Staff siempre a su bienvenida (evita “intended” a rutas de otro rol).
+        if ($usuario->esStaff()) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->to($destino)->with('success', 'Sesión iniciada.');
+        }
+
+        return redirect()->intended($destino)->with('success', 'Sesión iniciada.');
     }
 
     public function register(Request $request): RedirectResponse
@@ -61,11 +72,26 @@ class AuthController extends Controller
         // Creamos el usuario en la bbdd.
 
         $usuario = User::create([
-            'nombre_usuario' => trim($datos['nombre'] ?? '') ?: 'Cliente '.random_int(1000, 9999),
+            'nombre_usuario' => trim($datos['nombre'] ?? '') ?: 'Clienta',
             'email' => strtolower($datos['email']),
-            'contrasenia' => Hash::make($datos['password']),
+            'contrasenia' => $datos['password'],
             'id_rol' => 3,
         ]);
+
+        $loginUrl = route('login');
+        $this->messaging->sendBrand(
+            $usuario->email,
+            'Bienvenida a HairCut Home Studio',
+            "Hola {$usuario->nombre_usuario},",
+            [
+                'Gracias por crear tu cuenta en HairCut Home Studio.',
+                'Tu cuenta ya está disponible. Puedes ingresar con el correo y la contraseña que registraste.',
+            ],
+            $loginUrl,
+            'Iniciar sesión',
+            'Para más información visita nuestra página <a href="'.e(config('messaging.site_url')).'" style="color:#5C293C;">HairCut Home Studio</a>.',
+            ['tipo' => 'welcome', 'usuario_id' => $usuario->id_usuario],
+        );
 
         // dejamos su sesión iniciada.
         Auth::login($usuario);
@@ -84,26 +110,44 @@ class AuthController extends Controller
         return redirect()->route('home');
     }
 
-    // Esta función normaliza el email del administrador y del peluquero, con el fin de 
-    // ingresar más rápido durante el desarrollo.
-    private function normalizarIdentificador(string $valor): string
+    /**
+     * Acepta correo completo o nombre de usuario.
+     * Atajos de desarrollo: admin, ricardo.
+     */
+    private function resolverEmailLogin(string $valor): string
     {
         $valor = trim($valor);
+        $lower = strtolower($valor);
 
-        return match (strtolower($valor)) {
-            'admin' => 'admin@admin.cl',
-            'ricardo' => 'ricardo@me.com',
-            default => str_contains($valor, '@') ? $valor : $valor.'@haircut.cl',
-        };
+        if ($lower === 'admin') {
+            return 'admin@admin.cl';
+        }
+        if ($lower === 'ricardo') {
+            return 'ricardo@me.com';
+        }
+
+        if (str_contains($valor, '@')) {
+            return $lower;
+        }
+
+        $porNombre = User::query()
+            ->whereRaw('LOWER(nombre_usuario) = ?', [$lower])
+            ->value('email');
+
+        if (is_string($porNombre) && $porNombre !== '') {
+            return strtolower($porNombre);
+        }
+
+        $candidato = $lower.'@haircut.cl';
+        if (User::query()->where('email', $candidato)->exists()) {
+            return $candidato;
+        }
+
+        return $candidato;
     }
 
     private function inicioPara(User $usuario): string
     {
-        return match (strtolower((string) $usuario->rol?->rol)) {
-            'admin' => route('admin.servicios.index'),
-            'peluquero' => route('peluquero.dashboard'),
-            'cliente', 'cliadmin' => route('home'),
-            default => route('home'),
-        };
+        return $usuario->rutaInicio();
     }
 }

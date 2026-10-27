@@ -2,6 +2,8 @@
 
 Migración del proyecto PHP ubicado en `../haircut` a Laravel 12. El proyecto anterior permanece intacto como respaldo y referencia.
 
+> **Actualización 27 oct 2026:** correos Resend (bienvenida, reset, confirmación de hora), 2 fotos de referencia al reservar, modales de confirmación, menú/roles separados y bienvenida de staff. Detalle en el README de la carpeta `2.7_haircut_docker`.
+
 ## Estado de la migración
 
 Se trasladaron:
@@ -167,7 +169,7 @@ La ruta `/reservar` utiliza un asistente de cinco pasos:
 
 1. **Servicio:** se elige una categoría (`Cortes y lavado`, `Coloración e iluminación` o `Alisados y tratamientos`) y luego un servicio.
 2. **Fecha y hora:** se selecciona un día y un bloque horario disponible.
-3. **Referencia:** se puede adjuntar una imagen opcional o utilizar la simulación de Gemini vinculada.
+3. **Referencia:** se pueden adjuntar hasta **2 imágenes** opcionales y/o utilizar la simulación de Gemini vinculada.
 4. **Lugar:** se elige entre el salón y la atención a domicilio.
 5. **Confirmación:** se revisa el resumen y se envía la solicitud.
 
