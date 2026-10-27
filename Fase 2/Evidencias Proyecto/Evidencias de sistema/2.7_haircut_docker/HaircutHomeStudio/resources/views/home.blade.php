@@ -23,19 +23,6 @@
         </div>
     </section>
 
-    <div class="gallery-modal" id="gallery-modal" hidden data-no-loader>
-        <div class="gallery-modal-backdrop" data-gallery-close></div>
-        <div class="gallery-modal-dialog" role="dialog" aria-modal="true" aria-label="Vista ampliada de la galería">
-            <button type="button" class="gallery-modal-close" data-gallery-close aria-label="Cerrar">×</button>
-            <button type="button" class="gallery-modal-nav is-prev" data-gallery-prev aria-label="Imagen anterior">‹</button>
-            <figure class="gallery-modal-figure">
-                <img src="" alt="" id="gallery-modal-image">
-                <figcaption id="gallery-modal-caption"></figcaption>
-            </figure>
-            <button type="button" class="gallery-modal-nav is-next" data-gallery-next aria-label="Imagen siguiente">›</button>
-        </div>
-    </div>
-
     <section class="home-products-section" id="productos">
         <div class="home-section-head">
             <div>

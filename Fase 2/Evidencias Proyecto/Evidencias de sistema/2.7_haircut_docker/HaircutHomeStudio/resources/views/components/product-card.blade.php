@@ -3,7 +3,18 @@
 <article {{ $attributes->class(['product-card']) }}>
     <div class="product-photo">
         @if($imageUrl)
-            <img src="{{ $imageUrl }}" alt="{{ $product->producto }}">
+            <button
+                type="button"
+                class="product-photo-trigger"
+                style="display:block;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:zoom-in"
+                data-gallery-open
+                data-gallery-src="{{ $imageUrl }}"
+                data-gallery-alt="{{ $product->producto }}"
+                data-no-loader
+                aria-label="Ver {{ $product->producto }} en grande"
+            >
+                <img src="{{ $imageUrl }}" alt="{{ $product->producto }}" loading="lazy">
+            </button>
         @else
             <span class="product-placeholder">Sin imagen</span>
         @endif

@@ -54,28 +54,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call(CatalogoServiciosSeeder::class);
 
-        $products = [
-            [1, 'Shampoo de color', 'Cuidado para cabello teñido', 12990, 2],
-            [2, 'Acondicionador nutritivo', 'Hidratación y brillo', 11990, 1],
-            [3, 'Tratamiento Olaplex', 'Reparación de fibra capilar', 24990, 3],
-            [4, 'Leave-in protector', 'Protección térmica diaria', 9990, 1],
-            [5, 'Aceite capilar', 'Nutrición y anti-frizz', 14990, 3],
-            [6, 'Ampolleta de reparación', 'Dosis de tratamiento intensivo', 7990, 3],
-        ];
-
-        foreach ($products as [$id, $name, $description, $price, $categoryId]) {
-            DB::table('PRODUCTO')->updateOrInsert(
-                ['id_producto' => $id],
-                [
-                    'producto' => $name,
-                    'descripcion' => $description,
-                    'precio' => $price,
-                    'imagen' => null,
-                    'disponibilidad' => true,
-                    'id_categoria' => $categoryId,
-                ],
-            );
-        }
+        $this->call(CatalogoProductosSeeder::class);
 
         DB::table('ESTADO_RESERVA')->upsert([
             ['id_estado_reserva' => 1, 'estado_reserva' => 'En aprovación'],

@@ -35,6 +35,10 @@ class MediaService
             return null;
         }
 
+        if (str_starts_with($ruta, 'img/')) {
+            return asset($ruta);
+        }
+
         if (! str_contains($ruta, '/') && str_starts_with($ruta, 'ico-')) {
             return asset('img/iconos/'.substr($ruta, 4));
         }

@@ -56,17 +56,4 @@
         <p class="hint">El pago es presencial. Puedes cancelar hasta 10 minutos antes de la hora.</p>
     @endif
 </section>
-
-<div class="gallery-modal" id="gallery-modal" hidden data-no-loader>
-    <div class="gallery-modal-backdrop" data-gallery-close></div>
-    <div class="gallery-modal-dialog" role="dialog" aria-modal="true" aria-label="Vista de la imagen adjunta">
-        <button type="button" class="gallery-modal-close" data-gallery-close aria-label="Cerrar">×</button>
-        <button type="button" class="gallery-modal-nav is-prev" data-gallery-prev aria-label="Imagen anterior">‹</button>
-        <figure class="gallery-modal-figure">
-            <img src="" alt="" id="gallery-modal-image">
-            <figcaption id="gallery-modal-caption"></figcaption>
-        </figure>
-        <button type="button" class="gallery-modal-nav is-next" data-gallery-next aria-label="Imagen siguiente">›</button>
-    </div>
-</div>
 @endsection
