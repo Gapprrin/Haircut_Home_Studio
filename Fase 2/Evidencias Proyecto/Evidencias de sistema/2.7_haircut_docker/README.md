@@ -82,9 +82,3 @@ Listado de lo que quedó incorporado. No se documentan idas y vueltas temporales
 
 - Variables documentadas en `.env.example` para Resend y override de pruebas.
 
----
-
-## Notas
-
-- No subir API keys reales al repositorio; usar `.env` local (ignorado por Git).
-- Para enviar correo a cualquier destinatario hace falta un **dominio verificado** en Resend y actualizar `MESSAGING_FROM`.
