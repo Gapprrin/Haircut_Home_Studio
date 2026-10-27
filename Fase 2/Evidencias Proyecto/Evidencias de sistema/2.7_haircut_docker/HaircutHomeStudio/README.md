@@ -2,7 +2,7 @@
 
 Migración del proyecto PHP ubicado en `../haircut` a Laravel 12. El proyecto anterior permanece intacto como respaldo y referencia.
 
-> **Actualización 27 oct 2026:** correos Resend (bienvenida, reset, confirmación de hora), 2 fotos de referencia al reservar, modales de confirmación, menú/roles separados y bienvenida de staff. Detalle en el README de la carpeta `2.7_haircut_docker`.
+> **Actualización 27 oct 2026:** correos de marca (bienvenida, reset, confirmación de hora), 2 fotos de referencia al reservar, calendario que limpia día/hora al cambiar de mes, modales de confirmación, menú/roles separados y bienvenida de staff. Detalle en el README de la carpeta `2.7_haircut_docker`.
 
 ## Estado de la migración
 

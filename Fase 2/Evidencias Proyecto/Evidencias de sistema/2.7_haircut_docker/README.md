@@ -44,16 +44,16 @@ Listado de lo que quedó incorporado. No se documentan idas y vueltas temporales
 - Staff (admin/peluquero) no usa la portada pública como panel; van a bienvenida/panel.
 - Excepción **Admin Test Imagen** (`admin.imagen@haircut.cl`): admin con simulador ilimitado y opción de reservar.
 
-### Correos (Resend)
+### Correos
 
 - Servicio `MessagingService` + plantilla HTML de marca (`emails/brand`).
 - Envíos: bienvenida al registrarse, enlace de restablecer contraseña, confirmación o rechazo de solicitud de hora.
-- Configuración por `.env` (`MESSAGING_*` / `RESEND_API_KEY`).
-- Sin dominio propio verificado, Resend solo entrega al correo de la cuenta Resend; existe `MESSAGING_OVERRIDE_TO` para demos.
+- Configuración por `.env` (`MESSAGING_*`).
 
 ### Reservas y fotos
 
 - Asistente de reserva por pasos (servicio → fecha/hora → referencia → lugar → resumen).
+- Al **cambiar de mes** en el calendario se deselecciona el día y la hora; no se muestran slots de un mes distinto al visible.
 - Hasta **2 imágenes de referencia** por reserva (campo `foto` compatible con 1 o 2 rutas).
 - Modal de galería para ver referencia(s) y simulación IA en **Mis reservas** (cliente) y **Solicitudes** (peluquero).
 - Sin doble reserva del mismo bloque; cancelación hasta 10 minutos antes.
@@ -80,5 +80,10 @@ Listado de lo que quedó incorporado. No se documentan idas y vueltas temporales
 
 ### Mensajería / config de ejemplo
 
-- Variables documentadas en `.env.example` para Resend y override de pruebas.
+- Variables de mensajería documentadas en `.env.example`.
 
+---
+
+## Notas
+
+- No subir API keys reales al repositorio; usar `.env` local (ignorado por Git).
