@@ -294,6 +294,11 @@ class ReservationController extends Controller
             return null;
         }
 
+        // Si el calendario muestra otro mes, se descarta el día previo.
+        if ((int) $fecha->year !== $anio || (int) $fecha->month !== $mes) {
+            return null;
+        }
+
         return $fecha;
     }
 

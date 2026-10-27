@@ -239,73 +239,137 @@ function initPanelsAndFilters() {
 }
 
 function initPhotoPicker() {
-	const grid = document.getElementById('book-photo-grid');
+	const panel = document.getElementById('book-photo-panel');
 	const message = document.getElementById('book-photo-msg');
-	const slots = Array.from(document.querySelectorAll('[data-book-photo-slot]'));
-	if (!grid || slots.length === 0) return;
+	const addWrap = panel?.querySelector('[data-book-photo-add]');
+	const picker = panel?.querySelector('[data-book-photo-picker]');
+	const drop = panel?.querySelector('[data-book-photo-drop]');
+	const list = panel?.querySelector('[data-book-photo-list]');
+	if (!panel || !addWrap || !picker || !drop || !list) return;
 
+	const max = Number(panel.dataset.bookPhotoMax || 2);
 	const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+	const items = [];
+
 	const showMessage = (text) => {
 		if (!message) return;
 		message.hidden = !text;
 		message.textContent = text;
 	};
 
-	slots.forEach((slot) => {
-		const input = slot.querySelector('[data-book-photo-input]');
-		const drop = slot.querySelector('[data-book-photo-drop]');
-		const preview = slot.querySelector('[data-book-photo-preview]');
-		const image = preview?.querySelector('img');
-		const clear = slot.querySelector('[data-book-photo-clear]');
-		if (!input || !drop || !preview || !image) return;
+	const syncUi = () => {
+		list.hidden = items.length === 0;
+		addWrap.hidden = items.length >= max;
+		picker.value = '';
+	};
 
-		let objectUrl;
-		const reset = () => {
-			if (objectUrl) URL.revokeObjectURL(objectUrl);
-			objectUrl = undefined;
-			preview.hidden = true;
-			drop.hidden = false;
-			image.removeAttribute('src');
-			slot.classList.remove('has-file');
-		};
-		const setFile = (file) => {
-			if (!file) return;
-			if (!allowed.has(file.type)) {
-				input.value = '';
-				reset();
-				showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
-				return;
-			}
-			if (file.size > 3 * 1024 * 1024) {
-				input.value = '';
-				reset();
-				showMessage('Cada imagen no puede superar 3 MB.');
-				return;
-			}
-			showMessage('');
-			if (objectUrl) URL.revokeObjectURL(objectUrl);
-			objectUrl = URL.createObjectURL(file);
-			image.src = objectUrl;
-			preview.hidden = false;
-			drop.hidden = true;
-			slot.classList.add('has-file');
-		};
-
-		input.addEventListener('change', () => setFile(input.files?.[0]));
-		clear?.addEventListener('click', () => { input.value = ''; reset(); showMessage(''); });
-		['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-drag'); }));
-		['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-drag'); }));
-		drop.addEventListener('drop', (event) => {
-			const file = event.dataTransfer?.files?.[0];
-			if (!file) return;
-			try {
-				const transfer = new DataTransfer();
-				transfer.items.add(file);
-				input.files = transfer.files;
-			} catch {}
-			setFile(file);
+	const relabelItems = () => {
+		items.forEach((item, index) => {
+			const title = item.row.querySelector('[data-book-photo-title]');
+			if (title) title.textContent = `Referencia ${index + 1}`;
+			const image = item.row.querySelector('img');
+			if (image) image.alt = `Referencia ${index + 1}`;
+			const clear = item.row.querySelector('.book-photo-clear');
+			if (clear) clear.setAttribute('aria-label', `Quitar referencia ${index + 1}`);
 		});
+	};
+
+	const removeItem = (item) => {
+		const index = items.indexOf(item);
+		if (index < 0) return;
+		items.splice(index, 1);
+		if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+		item.row.remove();
+		relabelItems();
+		syncUi();
+		showMessage('');
+	};
+
+	const addFile = (file) => {
+		if (!file) return;
+		if (items.length >= max) {
+			showMessage(`Solo puedes agregar hasta ${max} imágenes.`);
+			return;
+		}
+		if (!allowed.has(file.type)) {
+			showMessage('Solo se permiten imágenes (JPG, PNG o WEBP). No PDF.');
+			return;
+		}
+		if (file.size > 3 * 1024 * 1024) {
+			showMessage('Cada imagen no puede superar 3 MB.');
+			return;
+		}
+
+		showMessage('');
+		const objectUrl = URL.createObjectURL(file);
+		const row = document.createElement('li');
+		row.className = 'book-photo-item';
+
+		const figure = document.createElement('div');
+		figure.className = 'book-photo-item-preview';
+		const image = document.createElement('img');
+		image.src = objectUrl;
+		image.alt = `Referencia ${items.length + 1}`;
+		figure.appendChild(image);
+
+		const meta = document.createElement('div');
+		meta.className = 'book-photo-item-meta';
+		const title = document.createElement('strong');
+		title.dataset.bookPhotoTitle = '1';
+		title.textContent = `Referencia ${items.length + 1}`;
+		const name = document.createElement('span');
+		name.textContent = file.name || 'Referencia';
+		meta.append(title, name);
+
+		const clear = document.createElement('button');
+		clear.type = 'button';
+		clear.className = 'book-photo-clear';
+		clear.setAttribute('aria-label', `Quitar referencia ${items.length + 1}`);
+		clear.innerHTML = '<span aria-hidden="true">×</span>';
+
+		const fileInput = document.createElement('input');
+		fileInput.type = 'file';
+		fileInput.name = 'fotos[]';
+		fileInput.className = 'book-photo-input';
+		fileInput.accept = 'image/jpeg,image/png,image/webp,image/gif';
+		fileInput.hidden = true;
+		try {
+			const transfer = new DataTransfer();
+			transfer.items.add(file);
+			fileInput.files = transfer.files;
+		} catch {
+			showMessage('No se pudo adjuntar la imagen en este navegador.');
+			URL.revokeObjectURL(objectUrl);
+			return;
+		}
+
+		row.append(figure, meta, clear, fileInput);
+		list.appendChild(row);
+
+		const item = { row, objectUrl, fileInput };
+		clear.addEventListener('click', () => removeItem(item));
+		items.push(item);
+		relabelItems();
+		syncUi();
+	};
+
+	picker.addEventListener('change', () => {
+		addFile(picker.files?.[0]);
+		picker.value = '';
 	});
+	['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => {
+		event.preventDefault();
+		drop.classList.add('is-drag');
+	}));
+	['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => {
+		event.preventDefault();
+		drop.classList.remove('is-drag');
+	}));
+	drop.addEventListener('drop', (event) => {
+		addFile(event.dataTransfer?.files?.[0]);
+	});
+
+	syncUi();
 }
 
 function initAvailability() {

@@ -112,9 +112,9 @@
         <section class="book-step" data-book-step="fecha" @if($initialStep !== 'fecha') hidden @endif>
             <div class="book-step-heading"><p class="home-kicker">Paso 2</p><h3>Fecha y hora</h3><p>{{ $longService ? 'Para este servicio largo recomendamos horarios de mañana.' : 'Elige una fecha y una hora disponible.' }}</p></div>
             <div class="book-month">
-                @if($previousMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'paso' => 'fecha']) }}" aria-label="Mes anterior" data-no-loader>‹</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+                @if($previousMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $previousMonth['anio'], 'mes' => $previousMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes anterior" data-no-loader>‹</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
                 <div class="book-month-pill">{{ \App\Support\Format::MESES[$mes] }} {{ $anio }}</div>
-                @if($nextMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'paso' => 'fecha']) }}" aria-label="Mes siguiente" data-no-loader>›</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
+                @if($nextMonth)<a class="book-nav" href="{{ $bookingUrl(['anio' => $nextMonth['anio'], 'mes' => $nextMonth['mes'], 'fecha' => '', 'hora' => '', 'paso' => 'fecha']) }}" aria-label="Mes siguiente" data-no-loader>›</a>@else<span class="book-nav is-off" aria-hidden="true"></span>@endif
             </div>
             <table class="book-cal">
                 <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
@@ -176,21 +176,16 @@
                 <div class="book-ai-reference"><img src="{{ route('ai.image', [$aiGeneration, 'output']) }}" alt="Simulación de {{ $aiGeneration->style_label ?? 'estilo' }}"><div><strong>Simulación IA incluida</strong><p>{{ $aiGeneration->style_label ?? 'Referencia de estilo' }}</p></div></div>
             @endif
             <div class="book-card">
-                <div class="book-photo-grid" id="book-photo-grid" data-book-photos>
-                    @foreach([1, 2] as $slot)
-                        <div class="book-photo" data-book-photo-slot="{{ $slot }}">
-                            <input class="book-photo-input" type="file" id="book-foto-{{ $slot }}" name="fotos[]" accept="image/jpeg,image/png,image/webp,image/gif" data-book-photo-input>
-                            <label class="book-photo-drop" for="book-foto-{{ $slot }}" data-book-photo-drop>
-                                <span class="book-photo-ico" aria-hidden="true">＋</span>
-                                <span class="book-photo-title">Imagen {{ $slot }}</span>
-                                <span class="book-photo-sub">JPG, PNG o WEBP · máx. 3 MB</span>
-                            </label>
-                            <div class="book-photo-preview" data-book-photo-preview hidden>
-                                <img alt="Vista previa de la imagen {{ $slot }}">
-                                <button type="button" class="book-photo-clear" data-book-photo-clear aria-label="Quitar imagen {{ $slot }}">&times;</button>
-                            </div>
-                        </div>
-                    @endforeach
+                <div class="book-photo-panel" id="book-photo-panel" data-book-photos data-book-photo-max="2">
+                    <div class="book-photo-add" data-book-photo-add>
+                        <input class="book-photo-input" type="file" id="book-foto-picker" accept="image/jpeg,image/png,image/webp,image/gif" data-book-photo-picker>
+                        <label class="book-photo-drop" for="book-foto-picker" data-book-photo-drop>
+                            <span class="book-photo-ico" aria-hidden="true">＋</span>
+                            <span class="book-photo-title">Agregar imagen</span>
+                            <span class="book-photo-sub">JPG, PNG o WEBP · máx. 3 MB · hasta 2</span>
+                        </label>
+                    </div>
+                    <ul class="book-photo-list" data-book-photo-list hidden></ul>
                 </div>
                 <p class="book-photo-msg" id="book-photo-msg" hidden></p>
             </div>
