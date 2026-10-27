@@ -31,12 +31,12 @@ unset($__defined_vars, $__key, $__value); ?>
 <article <?php echo e($attributes->class(['product-card'])); ?>>
     <div class="product-photo">
         <?php if($imageUrl): ?>
-            <img src="<?php echo e($imageUrl); ?>" alt="<?php echo e($product->nombre); ?>">
+            <img src="<?php echo e($imageUrl); ?>" alt="<?php echo e($product->producto); ?>">
         <?php else: ?>
             <span class="product-placeholder">Sin imagen</span>
         <?php endif; ?>
     </div>
-    <h3><?php echo e($product->nombre); ?></h3>
+    <h3><?php echo e($product->producto); ?></h3>
     <p class="product-desc"><?php echo e($product->descripcion); ?></p>
     <p class="product-price"><?php echo e(\App\Support\Format::precio($product->precio)); ?></p>
 </article><?php /**PATH /app/resources/views/components/product-card.blade.php ENDPATH**/ ?>

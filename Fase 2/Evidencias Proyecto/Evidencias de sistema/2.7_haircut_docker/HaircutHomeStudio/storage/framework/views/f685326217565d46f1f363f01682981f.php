@@ -13,11 +13,26 @@
         <div class="home-mosaic">
             <?php $__currentLoopData = $collage; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $foto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <figure class="home-mosaic-item home-mosaic-item-<?php echo e($index + 1); ?>">
-                    <img src="<?php echo e(asset($foto['src'])); ?>" alt="<?php echo e($foto['alt']); ?>" loading="lazy">
+                    <button type="button" class="home-mosaic-trigger" data-gallery-open data-gallery-index="<?php echo e($index); ?>" data-no-loader aria-label="Ver <?php echo e($foto['alt']); ?> en grande">
+                        <img src="<?php echo e(asset($foto['src'])); ?>" alt="<?php echo e($foto['alt']); ?>" loading="lazy">
+                    </button>
                 </figure>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
     </section>
+
+    <div class="gallery-modal" id="gallery-modal" hidden data-no-loader>
+        <div class="gallery-modal-backdrop" data-gallery-close></div>
+        <div class="gallery-modal-dialog" role="dialog" aria-modal="true" aria-label="Vista ampliada de la galería">
+            <button type="button" class="gallery-modal-close" data-gallery-close aria-label="Cerrar">×</button>
+            <button type="button" class="gallery-modal-nav is-prev" data-gallery-prev aria-label="Imagen anterior">‹</button>
+            <figure class="gallery-modal-figure">
+                <img src="" alt="" id="gallery-modal-image">
+                <figcaption id="gallery-modal-caption"></figcaption>
+            </figure>
+            <button type="button" class="gallery-modal-nav is-next" data-gallery-next aria-label="Imagen siguiente">›</button>
+        </div>
+    </div>
 
     <section class="home-products-section" id="productos">
         <div class="home-section-head">
@@ -28,9 +43,9 @@
             </div>
             <a href="<?php echo e(route('productos.index')); ?>" class="btn btn-secondary home-products-link">Ver todos los productos</a>
         </div>
-        <?php if($productos->isNotEmpty()): ?>
+        <?php if($PRODUCTO->isNotEmpty()): ?>
             <div class="home-products-grid">
-                <?php $__currentLoopData = $productos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $producto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if (isset($component)) { $__componentOriginal3fd2897c1d6a149cdb97b41db9ff827a = $component; } ?>
+                <?php $__currentLoopData = $PRODUCTO; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $producto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if (isset($component)) { $__componentOriginal3fd2897c1d6a149cdb97b41db9ff827a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal3fd2897c1d6a149cdb97b41db9ff827a = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.product-card','data' => ['product' => $producto]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('product-card'); ?>

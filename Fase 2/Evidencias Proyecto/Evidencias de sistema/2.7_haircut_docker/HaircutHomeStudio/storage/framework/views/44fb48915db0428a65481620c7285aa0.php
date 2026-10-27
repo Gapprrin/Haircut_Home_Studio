@@ -11,9 +11,10 @@
     if ($section === 'admin') $classes[] = 'admin-page';
     if ($isHome) $classes[] = 'user-motion';
     $usuario = auth()->user();
-    $backRoute = $usuario?->rol === 'admin'
+    $rolNombre = strtolower((string) ($usuario?->rol?->rol ?? ''));
+    $backRoute = $rolNombre === 'admin'
         ? route('admin.servicios.index')
-        : ($usuario?->rol === 'peluquero' ? route('peluquero.dashboard') : route('home'));
+        : ($rolNombre === 'peluquero' ? route('peluquero.dashboard') : route('home'));
     $horaInicio = substr((string) $layoutConfig->hora_inicio, 0, 5);
     $horaFin = substr((string) $layoutConfig->hora_fin, 0, 5);
 ?>
@@ -52,7 +53,7 @@
                 <a href="<?php echo e(route('login')); ?>" class="btn-nav btn-nav-outline">Iniciar sesión</a>
                 <a href="<?php echo e(route('login', ['modo' => 'registro'])); ?>" class="btn-nav btn-nav-fill">Registrarse</a>
             <?php else: ?>
-                <span class="nav-user nav-pill"><?php echo e($usuario->nombre); ?></span>
+                <a href="<?php echo e(route('perfil.edit')); ?>" class="nav-user nav-pill" title="Editar mi información"><?php echo e($usuario->nombre_usuario); ?></a>
             <?php endif; ?>
             <?php if (! ($isHome)): ?>
                 <a href="<?php echo e($backRoute); ?>" class="header-back" id="header-back" aria-label="Volver atrás" title="Volver atrás">
@@ -74,17 +75,19 @@
                     <a href="<?php echo e(route('login')); ?>" class="btn-nav btn-nav-outline">Iniciar sesión</a>
                     <a href="<?php echo e(route('login', ['modo' => 'registro'])); ?>" class="btn-nav btn-nav-fill">Registrarse</a>
                 </div>
+            <?php else: ?>
+                <a href="<?php echo e(route('perfil.edit')); ?>" class="side-nav-user <?php echo e($page === 'perfil' ? 'is-current' : ''); ?>" title="Editar mi información"><?php echo e($usuario->nombre_usuario); ?></a>
             <?php endif; ?>
 
-            <?php if($usuario?->rol === 'peluquero'): ?>
+            <?php if($rolNombre === 'peluquero'): ?>
                 <a href="<?php echo e(route('peluquero.dashboard')); ?>" class="nav-link <?php echo e($page === 'panel' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">▣</span> Estadísticas</a>
                 <a href="<?php echo e(route('peluquero.disponibilidad.edit')); ?>" class="nav-link <?php echo e($page === 'disponibilidad' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">▦</span> Disponibilidad</a>
                 <a href="<?php echo e(route('peluquero.solicitudes.index')); ?>" class="nav-link <?php echo e($page === 'solicitudes' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">✉</span> Solicitudes</a>
                 <a href="<?php echo e(route('peluquero.horas.index')); ?>" class="nav-link <?php echo e($page === 'horas' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">◷</span> Horas</a>
-            <?php elseif($usuario?->rol === 'admin'): ?>
+            <?php elseif($rolNombre === 'admin'): ?>
                 <a href="<?php echo e(route('admin.servicios.index')); ?>" class="nav-link <?php echo e($page === 'servicios' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">✂</span> Servicios</a>
                 <a href="<?php echo e(route('admin.catalogo.index')); ?>" class="nav-link <?php echo e($page === 'catalogo' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">▣</span> Catálogo</a>
-                <a href="<?php echo e(route('ai.index')); ?>" class="nav-link <?php echo e($page === 'ai' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">✦</span> Simulador</a>
+                <a href="<?php echo e(route('admin.usuarios.index')); ?>" class="nav-link <?php echo e($page === 'usuarios' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">☺</span> Personas</a>
             <?php else: ?>
                 <a href="<?php echo e(route('home')); ?>" class="nav-link <?php echo e($page === 'inicio' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">⌂</span> Inicio</a>
                 <a href="<?php echo e(route('productos.index')); ?>" class="nav-link <?php echo e($page === 'productos' ? 'is-current' : ''); ?>"><span class="nav-ico" aria-hidden="true">◈</span> Productos</a>
