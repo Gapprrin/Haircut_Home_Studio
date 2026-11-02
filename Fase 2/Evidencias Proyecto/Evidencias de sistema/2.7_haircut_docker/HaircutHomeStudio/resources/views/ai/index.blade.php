@@ -100,17 +100,35 @@
 
     <form method="post" action="{{ route('ai.store') }}" enctype="multipart/form-data" class="ai-form" data-ai-form>
         @csrf
-        <section class="ai-photo-panel">
-            <div class="ai-section-heading"><div><p class="home-kicker">Fotografía</p><h2>Tu foto</h2></div><span>JPG o PNG · máx. 6 MB</span></div>
-            <input type="file" id="ai-photo" name="photo" accept="image/jpeg,image/png" class="ai-photo-input" required @disabled(!$available || !$quota['allowed'])>
-            <label for="ai-photo" class="ai-photo-drop" data-ai-photo-drop>
-                <span class="ai-upload-icon" aria-hidden="true">＋</span>
-                <strong>Seleccionar fotografía</strong>
-                <span>Rostro visible, buena luz y cabello completo</span>
-            </label>
-            <div class="ai-photo-preview" data-ai-photo-preview hidden><img alt="Vista previa de la fotografía"></div>
-            <label for="ai-photo" class="ai-photo-change" data-ai-photo-change hidden>Cambiar fotografía</label>
-            <p class="hint">Para mejores resultados, recomendamos una foto de al menos 512 × 512 píxeles. También puedes usar una más pequeña.</p>
+        <section class="ai-photo-panel" data-ai-photo-panel>
+            <div class="ai-section-heading"><div><p class="home-kicker">Fotografía</p><h2>Tu foto</h2></div><span>Cámara o galería · se optimiza sola</span></div>
+            <input type="file" id="ai-photo" name="photo" accept="image/*" class="ai-photo-input" required @disabled(!$available || !$quota['allowed'])>
+            <input type="file" id="ai-photo-camera" accept="image/*" capture="environment" class="ai-photo-input" data-ai-photo-camera tabindex="-1" aria-hidden="true" @disabled(!$available || !$quota['allowed'])>
+            <input type="file" id="ai-photo-gallery" accept="image/*" class="ai-photo-input" data-ai-photo-gallery tabindex="-1" aria-hidden="true" @disabled(!$available || !$quota['allowed'])>
+
+            <div class="ai-photo-actions is-empty" data-ai-photo-actions-empty>
+                <button type="button" class="btn btn-primary ai-photo-action" data-ai-photo-pick="camera" @disabled(!$available || !$quota['allowed'])>Tomar foto</button>
+                <button type="button" class="btn btn-secondary ai-photo-action" data-ai-photo-pick="gallery" @disabled(!$available || !$quota['allowed'])>Elegir de galería</button>
+            </div>
+
+            <div class="ai-photo-preview" data-ai-photo-preview hidden>
+                <img alt="Vista previa de la fotografía">
+            </div>
+
+            <div class="ai-photo-actions is-camera" data-ai-photo-actions-camera hidden>
+                <button type="button" class="btn btn-secondary ai-photo-action" data-ai-photo-pick="gallery" @disabled(!$available || !$quota['allowed'])>Elegir de la galería</button>
+                <button type="button" class="btn btn-secondary ai-photo-action" data-ai-photo-pick="camera" @disabled(!$available || !$quota['allowed'])>Tomar otra</button>
+                <button type="button" class="btn btn-primary ai-photo-action" data-ai-photo-keep @disabled(!$available || !$quota['allowed'])>Seleccionar esa</button>
+            </div>
+
+            <div class="ai-photo-actions is-gallery" data-ai-photo-actions-gallery hidden>
+                <button type="button" class="btn btn-secondary ai-photo-action" data-ai-photo-pick="camera" @disabled(!$available || !$quota['allowed'])>Tomar foto</button>
+                <button type="button" class="btn btn-primary ai-photo-action" data-ai-photo-pick="gallery" @disabled(!$available || !$quota['allowed'])>Seleccionar</button>
+            </div>
+
+            <button type="button" class="ai-photo-change-link" data-ai-photo-change-link hidden>Cambiar fotografía</button>
+
+            <p class="hint">Rostro visible, buena luz y cabello completo. La imagen se ajusta sola para el teléfono.</p>
             <p class="ai-photo-error" data-ai-photo-error hidden></p>
         </section>
 

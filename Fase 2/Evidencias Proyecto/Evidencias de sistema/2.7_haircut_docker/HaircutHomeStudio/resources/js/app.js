@@ -520,62 +520,189 @@ function initSmallInteractions() {
 }
 
 function initAiStudio() {
+	const panel = document.querySelector('[data-ai-photo-panel]');
 	const input = document.getElementById('ai-photo');
-	const drop = document.querySelector('[data-ai-photo-drop]');
+	const cameraInput = document.querySelector('[data-ai-photo-camera]');
+	const galleryInput = document.querySelector('[data-ai-photo-gallery]');
 	const preview = document.querySelector('[data-ai-photo-preview]');
 	const image = preview?.querySelector('img');
-	const change = document.querySelector('[data-ai-photo-change]');
+	const emptyActions = document.querySelector('[data-ai-photo-actions-empty]');
+	const cameraActions = document.querySelector('[data-ai-photo-actions-camera]');
+	const galleryActions = document.querySelector('[data-ai-photo-actions-gallery]');
+	const changeLink = document.querySelector('[data-ai-photo-change-link]');
 	const error = document.querySelector('[data-ai-photo-error]');
+	const form = document.querySelector('[data-ai-form]');
 	let objectUrl;
+	let preparing = false;
+	let photoSource = null;
+	let photoKept = false;
+
+	const showError = (message) => {
+		if (!error) return;
+		error.textContent = message;
+		error.hidden = false;
+	};
+
+	const setActionVisibility = () => {
+		const hasPhoto = Boolean(input?.files?.length);
+		if (emptyActions) emptyActions.hidden = hasPhoto;
+		if (preview) preview.hidden = !hasPhoto;
+		if (changeLink) changeLink.hidden = !(hasPhoto && photoKept);
+		if (cameraActions) cameraActions.hidden = !(hasPhoto && photoSource === 'camera' && !photoKept);
+		if (galleryActions) galleryActions.hidden = !(hasPhoto && photoSource === 'gallery' && !photoKept);
+		panel?.classList.toggle('has-photo', hasPhoto);
+		panel?.classList.toggle('is-kept', hasPhoto && photoKept);
+	};
 
 	const reset = () => {
 		if (objectUrl) URL.revokeObjectURL(objectUrl);
 		objectUrl = undefined;
+		photoSource = null;
+		photoKept = false;
 		if (input) input.value = '';
-		if (preview) preview.hidden = true;
-		if (drop) drop.hidden = false;
-		if (change) change.hidden = true;
+		if (cameraInput) cameraInput.value = '';
+		if (galleryInput) galleryInput.value = '';
 		image?.removeAttribute('src');
 		if (error) error.hidden = true;
-	};
-	const select = (file) => {
-		if (!file || !input || !preview || !image || !drop) return;
-		if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 6 * 1024 * 1024) {
-			reset();
-			if (error) {
-				error.textContent = file.size > 6 * 1024 * 1024 ? 'La fotografía no puede superar 6 MB.' : 'Usa una fotografía JPG o PNG.';
-				error.hidden = false;
-			}
-			return;
-		}
-		if (objectUrl) URL.revokeObjectURL(objectUrl);
-		objectUrl = URL.createObjectURL(file);
-		image.src = objectUrl;
-		preview.hidden = false;
-		drop.hidden = true;
-		if (change) change.hidden = false;
-		if (error) error.hidden = true;
+		setActionVisibility();
 	};
 
-	input?.addEventListener('change', () => select(input.files?.[0]));
-	['dragenter', 'dragover'].forEach((name) => drop?.addEventListener(name, (event) => {
-		event.preventDefault();
-		drop.classList.add('is-drag');
-	}));
-	['dragleave', 'drop'].forEach((name) => drop?.addEventListener(name, (event) => {
-		event.preventDefault();
-		drop.classList.remove('is-drag');
-	}));
-	drop?.addEventListener('drop', (event) => {
-		const file = event.dataTransfer?.files?.[0];
-		if (!file || !input) return;
+	const loadImage = (file) => new Promise((resolve, reject) => {
+		const url = URL.createObjectURL(file);
+		const img = new Image();
+		img.onload = () => {
+			URL.revokeObjectURL(url);
+			resolve(img);
+		};
+		img.onerror = () => {
+			URL.revokeObjectURL(url);
+			reject(new Error('No se pudo leer la imagen.'));
+		};
+		img.src = url;
+	});
+
+	const canvasToJpegFile = (canvas, quality) => new Promise((resolve, reject) => {
+		canvas.toBlob((blob) => {
+			if (!blob) {
+				reject(new Error('No se pudo optimizar la imagen.'));
+				return;
+			}
+			resolve(new File([blob], 'simulacion.jpg', { type: 'image/jpeg', lastModified: Date.now() }));
+		}, 'image/jpeg', quality);
+	});
+
+	const optimizePhoto = async (file) => {
+		const img = await loadImage(file);
+		const maxSide = 2048;
+		const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+		const width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+		const height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) throw new Error('Tu navegador no puede preparar la foto.');
+		ctx.drawImage(img, 0, 0, width, height);
+
+		let quality = 0.88;
+		let optimized = await canvasToJpegFile(canvas, quality);
+		while (optimized.size > 5.5 * 1024 * 1024 && quality > 0.55) {
+			quality -= 0.08;
+			optimized = await canvasToJpegFile(canvas, quality);
+		}
+		if (optimized.size > 6 * 1024 * 1024) {
+			throw new Error('La fotografía sigue siendo demasiado pesada. Prueba otra con menos resolución.');
+		}
+		return optimized;
+	};
+
+	const assignToInput = (file) => {
+		if (!input) return;
 		try {
 			const transfer = new DataTransfer();
 			transfer.items.add(file);
 			input.files = transfer.files;
-		} catch {}
-		select(file);
+		} catch {
+			throw new Error('No se pudo adjuntar la fotografía en este dispositivo.');
+		}
+	};
+
+	const showPreview = (file, source) => {
+		if (!preview || !image) return;
+		if (objectUrl) URL.revokeObjectURL(objectUrl);
+		objectUrl = URL.createObjectURL(file);
+		image.src = objectUrl;
+		photoSource = source;
+		photoKept = false;
+		if (error) error.hidden = true;
+		setActionVisibility();
+	};
+
+	const select = async (file, source) => {
+		if (!file || !input || preparing) return;
+		preparing = true;
+		panel?.classList.add('is-preparing');
+		if (error) error.hidden = true;
+		try {
+			if (!file.type.startsWith('image/') && file.type !== '') {
+				throw new Error('El archivo debe ser una imagen.');
+			}
+			const optimized = await optimizePhoto(file);
+			assignToInput(optimized);
+			showPreview(optimized, source);
+		} catch (err) {
+			reset();
+			showError(err?.message || 'No se pudo usar esa imagen. Toma una foto JPG o elige otra de la galería.');
+		} finally {
+			preparing = false;
+			panel?.classList.remove('is-preparing');
+			if (cameraInput) cameraInput.value = '';
+			if (galleryInput) galleryInput.value = '';
+		}
+	};
+
+	document.querySelectorAll('[data-ai-photo-pick]').forEach((button) => {
+		button.addEventListener('click', () => {
+			if (button.disabled || preparing) return;
+			const mode = button.getAttribute('data-ai-photo-pick');
+			const target = mode === 'camera' ? cameraInput : galleryInput;
+			target?.click();
+		});
 	});
+
+	document.querySelector('[data-ai-photo-keep]')?.addEventListener('click', () => {
+		if (!input?.files?.length) return;
+		photoKept = true;
+		setActionVisibility();
+	});
+
+	changeLink?.addEventListener('click', () => {
+		photoKept = false;
+		setActionVisibility();
+	});
+
+	cameraInput?.addEventListener('change', () => {
+		const file = cameraInput.files?.[0];
+		if (file) select(file, 'camera');
+	});
+	galleryInput?.addEventListener('change', () => {
+		const file = galleryInput.files?.[0];
+		if (file) select(file, 'gallery');
+	});
+
+	form?.addEventListener('submit', (event) => {
+		if (preparing) {
+			event.preventDefault();
+			showError('Espera un momento: aún estamos preparando la fotografía.');
+			return;
+		}
+		if (!input?.files?.length) {
+			event.preventDefault();
+			showError('Toma una foto o elige una de la galería.');
+		}
+	});
+
+	setActionVisibility();
 
 	const categoryTabs = Array.from(document.querySelectorAll('[data-ai-category-tab]'));
 	const categoryPanels = Array.from(document.querySelectorAll('[data-ai-category-panel]'));
@@ -623,7 +750,6 @@ function initAiStudio() {
 			} catch {}
 		}, 3000);
 	} else {
-		// Resultado ya listo: asegurar que el overlay no quede pegado.
 		window.hideAppLoader?.();
 	}
 }

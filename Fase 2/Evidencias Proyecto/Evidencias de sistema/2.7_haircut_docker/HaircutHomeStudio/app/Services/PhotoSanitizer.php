@@ -15,19 +15,45 @@ class PhotoSanitizer
         $sanitized = match ($mimeType) {
             'image/jpeg' => $this->stripJpegMetadata($bytes),
             'image/png' => $this->stripPngMetadata($bytes),
-            default => throw new InvalidArgumentException('Solo se permiten imágenes JPG o PNG.'),
+            'image/webp' => $this->webpToJpeg($bytes),
+            default => throw new InvalidArgumentException('Solo se permiten imágenes JPG, PNG o WEBP.'),
         };
 
         if (@getimagesizefromstring($sanitized) === false) {
             throw new InvalidArgumentException('La imagen no se pudo validar después de limpiarla.');
         }
 
+        $outMime = str_starts_with($sanitized, "\xFF\xD8") ? 'image/jpeg' : $mimeType;
+
         return [
             'bytes' => $sanitized,
-            'mime_type' => $mimeType,
-            'extension' => $mimeType === 'image/png' ? 'png' : 'jpg',
+            'mime_type' => $outMime,
+            'extension' => $outMime === 'image/png' ? 'png' : 'jpg',
             'hash' => hash('sha256', $sanitized),
         ];
+    }
+
+    private function webpToJpeg(string $bytes): string
+    {
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagejpeg')) {
+            throw new InvalidArgumentException('Este servidor no puede procesar WEBP. Usa JPG o PNG.');
+        }
+
+        $image = @imagecreatefromstring($bytes);
+        if ($image === false) {
+            throw new InvalidArgumentException('La imagen WEBP no es válida.');
+        }
+
+        ob_start();
+        $ok = imagejpeg($image, null, 88);
+        imagedestroy($image);
+        $jpeg = (string) ob_get_clean();
+
+        if (! $ok || $jpeg === '') {
+            throw new InvalidArgumentException('No se pudo convertir la imagen WEBP.');
+        }
+
+        return $this->stripJpegMetadata($jpeg);
     }
 
     private function stripJpegMetadata(string $bytes): string
