@@ -10,7 +10,7 @@
         <div class="productos-foot actions"><a href="{{ route('home') }}" class="btn btn-secondary">Volver al inicio</a><a href="{{ route('reservas.create') }}" class="btn btn-primary">Reservar hora</a></div>
     </div>
     @if($productos->isNotEmpty())
-        <div class="productos-grid">@foreach($productos as $producto)<x-product-card :product="$producto" class="product-card-full" />@endforeach</div>
+        <div class="productos-grid">@foreach($productos as $producto)<x-product-card :product="$producto" :lightbox="true" class="product-card-full" />@endforeach</div>
     @else
         <p class="home-empty">Aún no hay productos publicados en el catálogo.</p>
     @endif

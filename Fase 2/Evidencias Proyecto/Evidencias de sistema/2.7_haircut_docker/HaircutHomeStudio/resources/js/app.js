@@ -878,33 +878,92 @@ function initGalleryLightbox() {
 	const modal = document.getElementById('gallery-modal');
 	const image = document.getElementById('gallery-modal-image');
 	const caption = document.getElementById('gallery-modal-caption');
+	const stage = modal?.querySelector('.gallery-modal-stage');
+	const swipeArea = modal?.querySelector('[data-gallery-swipe]') || stage;
 	const triggers = Array.from(document.querySelectorAll('[data-gallery-open]'));
 	if (!modal || !image || triggers.length === 0) return;
 
 	let index = 0;
+	let activeItems = [];
 	let lastFocus = null;
+	let touchStartX = 0;
+	let touchStartY = 0;
+	let touchDeltaX = 0;
+	let touchDeltaY = 0;
+	let swiping = false;
+	let lastTapAt = 0;
+	let zoomed = false;
+	let panX = 0;
+	let panY = 0;
+	let dragStartX = 0;
+	let dragStartY = 0;
+	let panOriginX = 0;
+	let panOriginY = 0;
+	let dragging = false;
+	let pointerId = null;
+	const zoomScale = () => (modal.dataset.galleryMode === 'catalogo' ? 1.7 : 1.9);
 
-	const items = triggers.map((trigger) => {
-		const img = trigger.querySelector('img');
-		return {
-			src: trigger.getAttribute('data-gallery-src') || img?.currentSrc || img?.src || '',
-			alt: trigger.getAttribute('data-gallery-alt') || img?.alt || trigger.textContent?.trim() || '',
-		};
-	}).filter((item) => item.src);
-
-	if (items.length === 0) return;
-
-	const show = (nextIndex) => {
-		index = (nextIndex + items.length) % items.length;
-		const item = items[index];
-		image.src = item.src;
-		image.alt = item.alt;
-		if (caption) caption.textContent = item.alt;
+	const applyTransform = (animate = false) => {
+		if (!image) return;
+		image.style.transition = animate ? 'transform 0.2s ease' : 'none';
+		const scale = zoomed ? zoomScale() : 1;
+		image.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${scale})`;
 	};
 
-	const open = (nextIndex) => {
+	const clampPan = () => {
+		if (!stage || !zoomed) {
+			panX = 0;
+			panY = 0;
+			return;
+		}
+		const rect = stage.getBoundingClientRect();
+		const maxX = Math.max(40, (rect.width * (zoomScale() - 1)) / 2 + 24);
+		const maxY = Math.max(40, (rect.height * (zoomScale() - 1)) / 2 + 24);
+		panX = Math.max(-maxX, Math.min(maxX, panX));
+		panY = Math.max(-maxY, Math.min(maxY, panY));
+	};
+
+	const setZoom = (value) => {
+		zoomed = Boolean(value);
+		if (!zoomed) {
+			panX = 0;
+			panY = 0;
+		}
+		stage?.classList.toggle('is-zoomed', zoomed);
+		stage?.classList.remove('is-panning');
+		dragging = false;
+		pointerId = null;
+		applyTransform(true);
+	};
+
+	const buildItems = (group) => triggers
+		.filter((trigger) => (trigger.getAttribute('data-gallery-group') || 'default') === group)
+		.map((trigger) => {
+			const img = trigger.querySelector('img');
+			return {
+				src: trigger.getAttribute('data-gallery-src') || img?.currentSrc || img?.src || '',
+				alt: trigger.getAttribute('data-gallery-alt') || img?.alt || trigger.textContent?.trim() || '',
+				mode: trigger.getAttribute('data-gallery-mode') || group,
+			};
+		})
+		.filter((item) => item.src);
+
+	const show = (nextIndex) => {
+		if (!activeItems.length) return;
+		index = (nextIndex + activeItems.length) % activeItems.length;
+		const item = activeItems[index];
+		image.src = item.src;
+		image.alt = item.alt;
+		modal.dataset.galleryMode = item.mode || 'default';
+		if (caption) caption.textContent = item.alt;
+		setZoom(false);
+	};
+
+	const open = (group, startIndex) => {
+		activeItems = buildItems(group);
+		if (!activeItems.length) return;
 		lastFocus = document.activeElement;
-		show(nextIndex);
+		show(startIndex);
 		modal.hidden = false;
 		document.body.classList.add('gallery-open');
 		modal.querySelector('.gallery-modal-close')?.focus();
@@ -913,21 +972,167 @@ function initGalleryLightbox() {
 	const close = () => {
 		modal.hidden = true;
 		document.body.classList.remove('gallery-open');
+		modal.removeAttribute('data-gallery-mode');
 		image.removeAttribute('src');
+		image.style.transform = '';
+		image.style.transition = '';
+		activeItems = [];
+		setZoom(false);
 		lastFocus?.focus?.();
 	};
 
-	triggers.forEach((trigger, triggerIndex) => {
-		trigger.addEventListener('click', () => open(triggerIndex));
+	triggers.forEach((trigger) => {
+		trigger.addEventListener('click', () => {
+			const group = trigger.getAttribute('data-gallery-group') || 'default';
+			const groupTriggers = triggers.filter((item) => (item.getAttribute('data-gallery-group') || 'default') === group);
+			open(group, Math.max(0, groupTriggers.indexOf(trigger)));
+		});
 	});
 	modal.querySelectorAll('[data-gallery-close]').forEach((el) => el.addEventListener('click', close));
 	modal.querySelector('[data-gallery-prev]')?.addEventListener('click', () => show(index - 1));
 	modal.querySelector('[data-gallery-next]')?.addEventListener('click', () => show(index + 1));
 	document.addEventListener('keydown', (event) => {
 		if (modal.hidden) return;
-		if (event.key === 'Escape') close();
-		if (event.key === 'ArrowLeft') show(index - 1);
-		if (event.key === 'ArrowRight') show(index + 1);
+		if (event.key === 'Escape') {
+			if (zoomed) setZoom(false);
+			else close();
+		}
+		if (event.key === 'ArrowLeft' && !zoomed) show(index - 1);
+		if (event.key === 'ArrowRight' && !zoomed) show(index + 1);
+	});
+
+	stage?.addEventListener('dblclick', (event) => {
+		event.preventDefault();
+		setZoom(!zoomed);
+	});
+
+	const beginPan = (clientX, clientY, id = null) => {
+		if (!zoomed) return false;
+		dragging = true;
+		pointerId = id;
+		dragStartX = clientX;
+		dragStartY = clientY;
+		panOriginX = panX;
+		panOriginY = panY;
+		stage?.classList.add('is-panning');
+		return true;
+	};
+
+	const movePan = (clientX, clientY) => {
+		if (!dragging || !zoomed) return;
+		panX = panOriginX + (clientX - dragStartX);
+		panY = panOriginY + (clientY - dragStartY);
+		clampPan();
+		applyTransform(false);
+	};
+
+	const endPan = () => {
+		dragging = false;
+		pointerId = null;
+		stage?.classList.remove('is-panning');
+	};
+
+	stage?.addEventListener('pointerdown', (event) => {
+		if (!zoomed || event.button !== 0 || event.pointerType === 'touch') return;
+		event.preventDefault();
+		stage.setPointerCapture?.(event.pointerId);
+		beginPan(event.clientX, event.clientY, event.pointerId);
+	});
+	stage?.addEventListener('pointermove', (event) => {
+		if (!dragging || event.pointerType === 'touch') return;
+		if (pointerId !== null && event.pointerId !== pointerId) return;
+		event.preventDefault();
+		movePan(event.clientX, event.clientY);
+	});
+	stage?.addEventListener('pointerup', (event) => {
+		if (event.pointerType === 'touch') return;
+		endPan();
+	});
+	stage?.addEventListener('pointercancel', (event) => {
+		if (event.pointerType === 'touch') return;
+		endPan();
+	});
+
+	const onTouchStart = (event) => {
+		if (modal.hidden || !event.touches?.[0]) return;
+		const touch = event.touches[0];
+		touchStartX = touch.clientX;
+		touchStartY = touch.clientY;
+		touchDeltaX = 0;
+		touchDeltaY = 0;
+		swiping = true;
+		if (zoomed) beginPan(touch.clientX, touch.clientY);
+	};
+
+	const onTouchMove = (event) => {
+		if (!swiping || !event.touches?.[0]) return;
+		const touch = event.touches[0];
+		touchDeltaX = touch.clientX - touchStartX;
+		touchDeltaY = touch.clientY - touchStartY;
+		if (zoomed) {
+			event.preventDefault();
+			movePan(touch.clientX, touch.clientY);
+			return;
+		}
+		if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY) && Math.abs(touchDeltaX) > 12) {
+			event.preventDefault();
+		}
+	};
+
+	const onTouchEnd = (event) => {
+		if (!swiping) return;
+		swiping = false;
+		const moved = Math.hypot(touchDeltaX, touchDeltaY) >= 48;
+		if (zoomed) {
+			endPan();
+			if (!moved) {
+				const now = Date.now();
+				if (now - lastTapAt < 320) {
+					event.preventDefault();
+					setZoom(false);
+					lastTapAt = 0;
+				} else {
+					lastTapAt = now;
+				}
+			} else {
+				lastTapAt = 0;
+			}
+			touchDeltaX = 0;
+			touchDeltaY = 0;
+			return;
+		}
+
+		if (moved) {
+			if (Math.abs(touchDeltaX) >= Math.abs(touchDeltaY)) {
+				if (touchDeltaX < 0) show(index + 1);
+				else show(index - 1);
+			}
+			touchDeltaX = 0;
+			touchDeltaY = 0;
+			lastTapAt = 0;
+			return;
+		}
+
+		const now = Date.now();
+		if (now - lastTapAt < 320) {
+			event.preventDefault();
+			setZoom(true);
+			lastTapAt = 0;
+		} else {
+			lastTapAt = now;
+		}
+		touchDeltaX = 0;
+		touchDeltaY = 0;
+	};
+
+	swipeArea?.addEventListener('touchstart', onTouchStart, { passive: true });
+	swipeArea?.addEventListener('touchmove', onTouchMove, { passive: false });
+	swipeArea?.addEventListener('touchend', onTouchEnd);
+	swipeArea?.addEventListener('touchcancel', () => {
+		swiping = false;
+		touchDeltaX = 0;
+		touchDeltaY = 0;
+		endPan();
 	});
 }
 

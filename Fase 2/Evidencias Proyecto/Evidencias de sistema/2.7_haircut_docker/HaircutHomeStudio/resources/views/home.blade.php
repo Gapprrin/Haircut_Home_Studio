@@ -15,7 +15,7 @@
         <div class="home-mosaic">
             @foreach($collage as $index => $foto)
                 <figure class="home-mosaic-item home-mosaic-item-{{ $index + 1 }}">
-                    <button type="button" class="home-mosaic-trigger" data-gallery-open data-gallery-index="{{ $index }}" data-no-loader aria-label="Ver {{ $foto['alt'] }} en grande">
+                    <button type="button" class="home-mosaic-trigger" data-gallery-open data-gallery-group="trabajos" data-gallery-mode="trabajos" data-gallery-index="{{ $index }}" data-no-loader aria-label="Ver {{ $foto['alt'] }} en grande">
                         <img src="{{ asset($foto['src']) }}" alt="{{ $foto['alt'] }}" loading="lazy">
                     </button>
                 </figure>

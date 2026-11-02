@@ -1,13 +1,17 @@
-@props(['product'])
+@props([
+    'product',
+    'lightbox' => false,
+])
 @php($imageUrl = app(\App\Services\MediaService::class)->urlProducto($product->imagen, $product->categoria?->nombre, $product->producto))
 <article {{ $attributes->class(['product-card']) }}>
     <div class="product-photo">
-        @if($imageUrl)
+        @if($imageUrl && $lightbox)
             <button
                 type="button"
                 class="product-photo-trigger"
-                style="display:block;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:zoom-in"
                 data-gallery-open
+                data-gallery-group="catalogo"
+                data-gallery-mode="catalogo"
                 data-gallery-src="{{ $imageUrl }}"
                 data-gallery-alt="{{ $product->producto }}"
                 data-no-loader
@@ -15,6 +19,8 @@
             >
                 <img src="{{ $imageUrl }}" alt="{{ $product->producto }}" loading="lazy">
             </button>
+        @elseif($imageUrl)
+            <img src="{{ $imageUrl }}" alt="{{ $product->producto }}" loading="lazy">
         @else
             <span class="product-placeholder">Sin imagen</span>
         @endif
