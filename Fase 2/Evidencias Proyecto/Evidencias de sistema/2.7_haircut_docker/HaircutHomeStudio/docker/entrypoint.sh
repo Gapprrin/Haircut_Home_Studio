@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+echo "Configurando permisos de almacenamiento..."
+mkdir -p /app/storage/logs /app/bootstrap/cache
+chown -R www-data:www-data /app/storage /app/bootstrap/cache
+chmod -R 775 /app/storage /app/bootstrap/cache
+
 echo "Waiting for MySQL..."
 counter=0
 while ! nc -z hhs-db 3306; do
