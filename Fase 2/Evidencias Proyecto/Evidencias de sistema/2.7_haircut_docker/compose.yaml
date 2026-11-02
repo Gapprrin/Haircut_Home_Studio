@@ -30,6 +30,7 @@ services:
       - "8000:80"
     volumes:
       - ./HaircutHomeStudio/app:/app/app
+      - ./HaircutHomeStudio/bootstrap:/app/bootstrap
       - ./HaircutHomeStudio/resources:/app/resources
       - ./HaircutHomeStudio/routes:/app/routes
       - ./HaircutHomeStudio/config:/app/config
