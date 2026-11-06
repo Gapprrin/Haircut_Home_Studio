@@ -8,7 +8,7 @@
     @if($registro)
         <form method="post" action="{{ route('register.store') }}" class="auth-form">
             @csrf
-            <div class="auth-field"><input type="text" name="nombre" value="{{ old('nombre', $nombreSugerido) }}" readonly placeholder="Nombre"></div>
+            <div class="auth-field"><input type="text" name="nombre" value="{{ old('nombre', $nombreSugerido) }}" placeholder="Nombre"></div>
             <div class="auth-field"><input type="email" name="email" required value="{{ old('email') }}" placeholder="Correo electrónico" autocomplete="email"></div>
             <div class="auth-field"><input type="password" name="password" required minlength="6" placeholder="Contraseña" autocomplete="new-password"></div>
             <div class="auth-field"><input type="password" name="password_confirmation" required minlength="6" placeholder="Confirmar contraseña" autocomplete="new-password"></div>

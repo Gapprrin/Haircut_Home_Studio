@@ -41,7 +41,7 @@ Route::middleware('auth')->group(function (): void {
 
 Route::get('/bienvenida', StaffWelcomeController::class)->middleware('auth')->name('staff.welcome');
 
-Route::middleware(['auth', 'ai.access'])->group(function (): void {
+Route::middleware(['auth', 'ai.access', 'session.cache'])->group(function (): void {
     Route::get('/simulador', [AiStudioController::class, 'index'])->name('ai.index');
     Route::post('/simulador', [AiStudioController::class, 'store'])->middleware('throttle:ai-generations')->name('ai.store');
     Route::get('/simulador/{generation}', [AiStudioController::class, 'show'])->name('ai.show');
@@ -49,7 +49,7 @@ Route::middleware(['auth', 'ai.access'])->group(function (): void {
     Route::delete('/simulador/{generation}/imagenes', [AiStudioController::class, 'destroyMedia'])->name('ai.media.destroy');
 });
 
-Route::middleware(['auth', 'role:cliente'])->group(function (): void {
+Route::middleware(['auth', 'role:cliente', 'session.cache'])->group(function (): void {
     Route::get('/reservar', [ReservationController::class, 'create'])->name('reservas.create');
     Route::post('/reservar', [ReservationController::class, 'store'])->name('reservas.store');
     Route::get('/mis-reservas', [ReservationController::class, 'index'])->name('reservas.index');
@@ -65,7 +65,7 @@ Route::get('/reservas/{reserva}/imagen-simulada', [ReservationController::class,
     ->middleware('auth')
     ->name('reservas.simulated-image');
 
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
+Route::middleware(['auth', 'role:admin', 'session.cache'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/servicios', [ServiceController::class, 'index'])->name('servicios.index');
     Route::post('/categorias', [ServiceController::class, 'storeCategory'])->name('categorias.store');
     Route::delete('/categorias/{categoria}', [ServiceController::class, 'destroyCategory'])->name('categorias.destroy');
@@ -84,7 +84,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/usuarios/{usuario}', [UserController::class, 'destroy'])->name('usuarios.destroy');
 });
 
-Route::middleware(['auth', 'role:peluquero'])->prefix('admin')->name('peluquero.')->group(function (): void {
+Route::middleware(['auth', 'role:peluquero', 'session.cache'])->prefix('admin')->name('peluquero.')->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/disponibilidad', [AvailabilityController::class, 'edit'])->name('disponibilidad.edit');
     Route::put('/disponibilidad', [AvailabilityController::class, 'update'])->name('disponibilidad.update');
@@ -94,6 +94,7 @@ Route::middleware(['auth', 'role:peluquero'])->prefix('admin')->name('peluquero.
     Route::patch('/horas', [HoursController::class, 'update'])->name('horas.update');
     Route::get('/reportes', [ReportController::class, 'export'])->name('reportes.export');
 });
+
 
 Route::redirect('/index.php', '/');
 Route::redirect('/usuario/productos.php', '/productos');
