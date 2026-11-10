@@ -87,16 +87,9 @@ Las pruebas automatizadas continúan usando SQLite en memoria, configurado en `p
 
 ## Cuentas de demostración
 
-| Rol | Usuario | Contraseña |
-|---|---|---|
-| Administrador | `admin` o `admin@admin.cl` | `admin123` |
-| Admin de pruebas IA | `admin.imagen@haircut.cl` | `ImagenTest2026!` |
-| Peluquero | `ricardo` o `ricardo@me.com` | `kako123` |
-| Cliente | `ana` o `ana@haircut.cl` | `ana123` |
+El seeder crea cuentas locales de administrador, peluquero y clienta. Entra con el correo completo. Esas contraseñas de demostración no deben usarse en el servidor público: cámbialas desde el panel antes de abrir el puerto 8000.
 
-Los hashes bcrypt originales se conservaron, por lo que estas credenciales siguen siendo compatibles.
-
-`Admin Test Imagen` tiene el indicador `ai_sin_limite` y se usa solo para probar generaciones: no consume las cuotas por usuario, IP ni los topes globales. Mantiene una sola generación simultánea para evitar envíos duplicados. Cambia su contraseña o elimina esta cuenta antes de publicar el proyecto.
+La cuenta de pruebas del simulador tiene el indicador `ai_sin_limite` y no consume las cuotas por usuario, IP ni los topes globales. Cámbiale la contraseña o elimínala antes de publicar.
 
 ## Simulador con Gemini
 

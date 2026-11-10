@@ -32,11 +32,13 @@ class ProfileController extends Controller
                 'max:100',
                 Rule::unique('USUARIO', 'email')->ignore($usuario->id_usuario, 'id_usuario'),
             ],
-            'password' => ['nullable', 'confirmed', Password::min(6)],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
         ], [
             'email.unique' => 'Ese correo ya está registrado.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
+            'password.letters' => 'La contraseña debe incluir letras.',
+            'password.numbers' => 'La contraseña debe incluir números.',
         ]);
 
         $usuario->nombre_usuario = $datos['nombre_usuario'];

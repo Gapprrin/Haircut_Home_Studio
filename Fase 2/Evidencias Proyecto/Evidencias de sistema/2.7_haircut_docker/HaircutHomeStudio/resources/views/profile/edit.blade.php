@@ -24,11 +24,11 @@
         </div>
         <div class="auth-field">
             <label class="profile-label" for="password">Nueva contraseña</label>
-            <input id="password" type="password" name="password" minlength="6" placeholder="Dejar vacío para no cambiar" autocomplete="new-password">
+            <input id="password" type="password" name="password" minlength="10" placeholder="Mínimo 10 caracteres, con letras y números" autocomplete="new-password">
         </div>
         <div class="auth-field">
             <label class="profile-label" for="password_confirmation">Confirmar contraseña</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" minlength="6" placeholder="Repite la nueva contraseña" autocomplete="new-password">
+            <input id="password_confirmation" type="password" name="password_confirmation" minlength="10" placeholder="Repite la nueva contraseña" autocomplete="new-password">
         </div>
         @if($usuario->esStaff())
             <p class="hint">Rol actual: <strong>{{ ucfirst($usuario->nombreRol()) }}</strong></p>

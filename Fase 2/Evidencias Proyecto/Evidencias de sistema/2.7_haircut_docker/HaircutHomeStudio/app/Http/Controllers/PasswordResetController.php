@@ -88,10 +88,12 @@ class PasswordResetController extends Controller
         $datos = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email', 'max:150'],
-            'password' => ['required', 'confirmed', Password::min(6)],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ], [
             'password.confirmed' => 'Las contraseñas no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
+            'password.letters' => 'La contraseña debe incluir letras.',
+            'password.numbers' => 'La contraseña debe incluir números.',
         ]);
 
         $email = strtolower(trim($datos['email']));
