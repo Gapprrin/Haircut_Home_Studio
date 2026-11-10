@@ -67,7 +67,6 @@ RUN chown -R www-data:www-data /app && \
 
 # Copy config files
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
-COPY docker/zz-security.ini /usr/local/etc/php/conf.d/zz-security.ini
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 

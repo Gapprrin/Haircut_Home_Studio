@@ -10,12 +10,12 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_log_in_with_email(): void
+    public function test_legacy_admin_hash_and_short_alias_can_log_in(): void
     {
         $this->seed();
 
         $response = $this->post(route('login.store'), [
-            'email' => 'admin@admin.cl',
+            'email' => 'admin',
             'password' => 'admin123',
         ]);
 

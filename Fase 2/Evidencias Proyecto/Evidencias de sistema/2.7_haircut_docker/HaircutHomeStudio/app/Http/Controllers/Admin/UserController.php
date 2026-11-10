@@ -97,14 +97,12 @@ class UserController extends Controller
             'password' => [
                 $edicion ? 'nullable' : 'required',
                 'confirmed',
-                Password::defaults(),
+                Password::min(6),
             ],
         ], [
             'email.unique' => 'Ese correo ya está registrado.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
-            'password.letters' => 'La contraseña debe incluir letras.',
-            'password.numbers' => 'La contraseña debe incluir números.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
             'password.required' => 'La contraseña es obligatoria.',
         ]);
     }

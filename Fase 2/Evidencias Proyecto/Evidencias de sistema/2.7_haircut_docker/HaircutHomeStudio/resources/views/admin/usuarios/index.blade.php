@@ -22,8 +22,8 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="field"><label for="user-pass">Contraseña</label><input type="password" id="user-pass" name="password" required minlength="10" autocomplete="new-password" placeholder="Mínimo 10 caracteres, con letras y números"></div>
-                <div class="field"><label for="user-pass2">Confirmar contraseña</label><input type="password" id="user-pass2" name="password_confirmation" required minlength="10" autocomplete="new-password"></div>
+                <div class="field"><label for="user-pass">Contraseña</label><input type="password" id="user-pass" name="password" required minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres"></div>
+                <div class="field"><label for="user-pass2">Confirmar contraseña</label><input type="password" id="user-pass2" name="password_confirmation" required minlength="6" autocomplete="new-password"></div>
             </div>
             <div class="actions"><button type="submit" class="btn btn-primary">Guardar persona</button><button type="button" class="btn btn-secondary" data-panel-close="user-create">Cancelar</button></div>
         </form>
@@ -94,8 +94,8 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="field"><label>Nueva contraseña</label><input type="password" name="password" minlength="10" autocomplete="new-password" placeholder="Déjala vacía para no cambiarla"></div>
-                                <div class="field"><label>Confirmar contraseña</label><input type="password" name="password_confirmation" minlength="10" autocomplete="new-password"></div>
+                                <div class="field"><label>Nueva contraseña</label><input type="password" name="password" minlength="6" autocomplete="new-password" placeholder="Déjala vacía para no cambiarla"></div>
+                                <div class="field"><label>Confirmar contraseña</label><input type="password" name="password_confirmation" minlength="6" autocomplete="new-password"></div>
                             </div>
                             <div class="actions"><button type="submit" class="btn btn-primary">Guardar cambios</button><button type="button" class="btn btn-secondary" data-panel-close="user-edit-{{ $persona->id_usuario }}">Cancelar</button></div>
                         </form>

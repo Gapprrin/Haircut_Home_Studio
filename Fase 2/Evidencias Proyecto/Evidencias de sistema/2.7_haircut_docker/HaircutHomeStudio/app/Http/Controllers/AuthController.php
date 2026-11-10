@@ -62,13 +62,11 @@ class AuthController extends Controller
         $datos = $request->validate([
             'nombre' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', Rule::unique('USUARIO', 'email')],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', Password::min(6)],
         ], [
             'email.unique' => 'Ese correo ya está registrado. Entra con tu contraseña.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
-            'password.min' => 'La contraseña debe tener al menos 10 caracteres.',
-            'password.letters' => 'La contraseña debe incluir letras.',
-            'password.numbers' => 'La contraseña debe incluir números.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
         ]);
 
         // Creamos el usuario en la bbdd.
@@ -114,11 +112,19 @@ class AuthController extends Controller
 
     /**
      * Acepta correo completo o nombre de usuario.
+     * Atajos de desarrollo: admin, ricardo.
      */
     private function resolverEmailLogin(string $valor): string
     {
         $valor = trim($valor);
         $lower = strtolower($valor);
+
+        if ($lower === 'admin') {
+            return 'admin@admin.cl';
+        }
+        if ($lower === 'ricardo') {
+            return 'ricardo@me.com';
+        }
 
         if (str_contains($valor, '@')) {
             return $lower;

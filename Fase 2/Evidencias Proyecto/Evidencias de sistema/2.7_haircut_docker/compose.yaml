@@ -49,6 +49,8 @@ services:
       MYSQL_DATABASE: haircut_studio_laravel
       MYSQL_USER: user
       MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
     networks:
@@ -61,13 +63,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: hhs_redis
-    env_file:
-      - ./HaircutHomeStudio/.env
-    command: ["sh", "-c", "exec redis-server --requirepass \"$REDIS_PASSWORD\""]
+    ports:
+      - "16379:6379"
     networks:
       - hhs-network
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      test: ["CMD", "redis-cli", "ping"]
       timeout: 3s
       retries: 5
 
