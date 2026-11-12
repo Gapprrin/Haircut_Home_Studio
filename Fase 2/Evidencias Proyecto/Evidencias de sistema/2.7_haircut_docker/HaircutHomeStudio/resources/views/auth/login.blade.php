@@ -21,11 +21,11 @@
             <div class="auth-field"><input type="text" name="email" required value="{{ old('email') }}" placeholder="Usuario o correo" autocomplete="username"></div>
             <div class="auth-field"><input type="password" name="password" required placeholder="Contraseña" autocomplete="current-password"></div>
             <button type="submit" class="btn btn-primary auth-submit">Entrar</button>
-            <p class="auth-foot">
+
+            <div class="auth-links">
                 <a href="{{ route('password.request') }}">Restablecer contraseña</a>
-                ·
-                ¿No tienes cuenta? <a href="{{ route('login', ['modo' => 'registro']) }}">Crear cuenta</a>
-            </p>
+                <p class="auth-signup">¿No tienes cuenta? <a href="{{ route('login', ['modo' => 'registro']) }}">Crear cuenta</a></p>
+            </div>
         </form>
     @endif
 </section>

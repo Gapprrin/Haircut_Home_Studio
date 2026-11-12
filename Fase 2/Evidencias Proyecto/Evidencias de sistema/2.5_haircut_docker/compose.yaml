@@ -4,7 +4,7 @@ name: haircut_home_studio
 services:
   hhs-app:
     build:
-      context: ../2.5HaircutHomeStudio
+      context: ./HaircutHomeStudio
       dockerfile: Dockerfile
     container_name: haircut_app
     env_file:
@@ -29,12 +29,13 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ../2.5HaircutHomeStudio/app:/app/app
-      - ../2.5HaircutHomeStudio/resources:/app/resources
-      - ../2.5HaircutHomeStudio/routes:/app/routes
-      - ../2.5HaircutHomeStudio/config:/app/config
-      - ../2.5HaircutHomeStudio/database:/app/database
-      - ../2.5HaircutHomeStudio/storage:/app/storage
+      - ./HaircutHomeStudio/app:/app/app
+      - ./HaircutHomeStudio/bootstrap:/app/bootstrap
+      - ./HaircutHomeStudio/resources:/app/resources
+      - ./HaircutHomeStudio/routes:/app/routes
+      - ./HaircutHomeStudio/config:/app/config
+      - ./HaircutHomeStudio/database:/app/database
+      - ./HaircutHomeStudio/storage:/app/storage
     networks:
       - hhs-network
 

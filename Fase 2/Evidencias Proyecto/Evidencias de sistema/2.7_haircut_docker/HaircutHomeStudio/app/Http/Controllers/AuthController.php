@@ -33,17 +33,26 @@ class AuthController extends Controller
 
         // Resuelve usuario/correo (ej. "rosa" → email real de la cuenta).
         $credenciales['email'] = $this->resolverEmailLogin($credenciales['email']);
+        $mantenerSesion = $request->boolean('remember');
 
         // Se realiza la autenticación del usuario.
-        if (! Auth::attempt($credenciales)) {
+        if (! Auth::attempt($credenciales, $mantenerSesion)) {
             return back()
                 ->withErrors(['email' => 'Usuario o contraseña incorrectos.'])
                 ->onlyInput('email');
         }
 
+        $usuario = Auth::user();
         $request->session()->regenerate();
 
-        $usuario = Auth::user();
+        if (! $usuario?->estaActiva()) {
+            $request->session()->forget('url.intended');
+
+            return redirect()
+                ->route('home')
+                ->with('success', 'Sesión iniciada. Tu cuenta está desactivada: solo puedes ver Inicio y Productos.');
+        }
+
         $destino = $this->inicioPara($usuario);
 
         // Staff siempre a su bienvenida (evita “intended” a rutas de otro rol).
@@ -107,7 +116,13 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home');
+        return redirect()
+            ->route('home')
+            ->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT',
+            ]);
     }
 
     /**
