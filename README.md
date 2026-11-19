@@ -1,35 +1,29 @@
 # Haircut_Home_Studio
 
-Este repositorio cuenta con la evidencia del desarrollo del proyecto de Capstone. Cuenta con 3 fases; el desarrollo activo está en la **fase 2**.
+Evidencia del desarrollo Capstone de **HairCut Home Studio**. El trabajo activo está en la **fase 2**.
 
-Las instrucciones de ejecución del sistema están en el README dentro de la carpeta del proyecto Laravel (`HaircutHomeStudio`).
+## Versión actual
 
-## Versiones del proyecto (nombres de carpetas)
+**2.8** — `Fase 2/Evidencias Proyecto/Evidencias de sistema/2.8_haircut_final_docker`
 
-En `Fase 2/Evidencias Proyecto/Evidencias de sistema/` las evidencias de sistema quedaron renombradas por número de versión:
+Stack: Laravel 12 + MySQL + Redis + Docker.
 
-| Carpeta | Descripción breve |
+## Versiones (carpetas de evidencia)
+
+| Carpeta | Nota |
 |---|---|
-| `2.4_haircut` | Versión 2.4 (base PHP / evidencia previa) |
-| `2.5_haircut_docker` | Versión 2.5 con Docker |
-| `2.6_haircut` | Versión 2.6 |
-| `2.7_haircut_docker` | **Versión actual** — Docker + Laravel |
+| `2.4_haircut` | Base PHP / evidencia previa |
+| `2.5_haircut_docker` | Docker |
+| `2.6_haircut` | Iteración intermedia |
+| `2.7_haircut_docker` | Docker + Laravel |
+| `2.8_haircut_final_docker` | **Versión actual** |
 
-La última actualización del proyecto está en:
+## Qué incluye la 2.8
 
-`Fase 2/Evidencias Proyecto/Evidencias de sistema/2.7_haircut_docker`
+- Reservas, disponibilidad, panel admin/peluquero y roles separados
+- Simulador de estilo con IA
+- Correos de marca (bienvenida, restablecer clave, solicitudes)
+- Seguridad reforzada (contraseñas, CSRF, cabeceras, validaciones y avisos en español)
+- Navegación por rol (staff no queda en zonas ajenas al usar “atrás”)
 
-El detalle técnico de cambios de la 2.7 está en el README de esa carpeta.
-
-## resumen
-
-En la versión **2.7** se avanzó sobre:
-
-- Correos transaccionales con **Resend** (bienvenida, restablecer contraseña, confirmación/rechazo de hora), plantilla con colores de marca.
-- Flujo de **restablecer contraseña** por correo.
-
-- **Modales de confirmación** al eliminar o cancelar.
-- **Separación por roles** (cliente / peluquero / admin): cada uno entra solo a sus pantallas.
-
-Para el listado completo de cambios de la 2.7, ver  
-`Fase 2/Evidencias Proyecto/Evidencias de sistema/2.7_haircut_docker/README.md`.
+Arranque y detalle técnico: README dentro de `2.8_haircut_final_docker`.
