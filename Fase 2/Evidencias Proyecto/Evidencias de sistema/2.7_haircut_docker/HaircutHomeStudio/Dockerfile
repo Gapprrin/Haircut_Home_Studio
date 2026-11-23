@@ -4,7 +4,7 @@
 FROM node:24-alpine AS assets
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY resources ./resources
 COPY vite.config.js ./
 RUN npm run build
@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     netcat-openbsd
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql bcmath mbstring
+RUN docker-php-ext-install pdo pdo_mysql bcmath mbstring pcntl
 
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
@@ -42,6 +42,10 @@ WORKDIR /app
 COPY . .
 
 COPY --from=assets /app/public/build /app/public/build
+
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions \
+    storage/framework/views storage/logs storage/app/public/fotos \
+    storage/app/private/ai bootstrap/cache
 
 # Install Composer dependencies
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
@@ -67,10 +71,11 @@ RUN chown -R www-data:www-data /app && \
 
 # Copy config files
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 80
 

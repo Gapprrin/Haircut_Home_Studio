@@ -15,6 +15,12 @@ Versión en uso para el capstone. Incluye la base de datos nueva del proyecto y 
 
 App local típica: `http://localhost:8000`
 
+## Publicar en Hostinger
+
+Para un VPS Ubuntu y una base nueva sin cuentas ni reservas demo, sigue la [guía paso a paso de producción](GUIA_HOSTINGER.md). Usa el [perfil de producción](compose.production.yaml), no el Compose local. Incluye HTTPS con Caddy, secretos fuera de Git, almacenamiento persistente, colas y limpieza programada.
+
+El [generador del paquete](deploy/package.ps1) prepara únicamente la versión 2.7 sin claves, dependencias, bases locales ni fotografías privadas. El comando `php artisan studio:install` carga los catálogos y crea las dos cuentas propias con contraseñas ocultas; rechaza bases que ya tengan datos. No reemplaza ni ejecuta el seeder general de demostración.
+
 ---
 
 ## Cambios de esta versión (2.7)

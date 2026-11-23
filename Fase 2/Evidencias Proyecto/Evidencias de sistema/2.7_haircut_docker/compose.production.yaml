@@ -1,0 +1,116 @@
+name: haircut_production
+
+services:
+  hhs-app:
+    build:
+      context: ./HaircutHomeStudio
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 180s
+    depends_on:
+      hhs-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: Haircut Home Studio
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_URL: https://${APP_DOMAIN:?Define APP_DOMAIN}
+      APP_KEY: ${APP_KEY:?Define APP_KEY}
+      APP_LOCALE: es
+      APP_FALLBACK_LOCALE: es
+      TZ: America/Santiago
+      TRUSTED_PROXIES: '*'
+      SEED_DEMO_DATA: 'false'
+      DB_CONNECTION: mysql
+      DB_HOST: hhs-db
+      DB_PORT: 3306
+      DB_DATABASE: haircut_studio
+      DB_USERNAME: haircut_app
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD}
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_QUEUE_RETRY_AFTER: 210
+      QUEUE_FAILED_DRIVER: file
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: 'true'
+      SESSION_SAME_SITE: lax
+      LOG_CHANNEL: stderr
+      AI_ENABLED: 'true'
+      AI_PROVIDER: gemini
+      AI_PROCESS_SYNC: 'false'
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Define GEMINI_API_KEY}
+      GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-lite-image}
+      GEMINI_TIMEOUT: 120
+      MESSAGING_DRIVER: ${MESSAGING_DRIVER:-log}
+      MESSAGING_API_KEY: ${MESSAGING_API_KEY:-}
+      MESSAGING_FROM: ${MESSAGING_FROM:-reservas@haircuthomestudio.tech}
+      MESSAGING_FROM_NAME: HairCut Home Studio
+      MESSAGING_API_URL: https://api.resend.com/emails
+      MESSAGING_OVERRIDE_TO: ''
+      MAIL_MAILER: log
+    volumes:
+      - app_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  hhs-db:
+    image: mysql:8.4
+    command: ["--log-bin-trust-function-creators=1", "--lower-case-table-names=1"]
+    restart: unless-stopped
+    environment:
+      TZ: America/Santiago
+      MYSQL_DATABASE: haircut_studio
+      MYSQL_USER: haircut_app
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysql --protocol=tcp -h 127.0.0.1 -u root --execute='SELECT 1' --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      hhs-app:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Define APP_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  app_storage:
+  db_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

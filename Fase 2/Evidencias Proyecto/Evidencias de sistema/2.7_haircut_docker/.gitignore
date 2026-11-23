@@ -1,0 +1,3 @@
+.env.production
+/backups/
+/haircut-2.7-hostinger.tar.gz
